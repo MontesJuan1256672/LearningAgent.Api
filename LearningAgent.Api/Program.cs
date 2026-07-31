@@ -9,11 +9,18 @@ builder.Services.AddControllers();
 builder.Services.Configure<OpenAIOptions>(
     builder.Configuration.GetSection("OpenAI"));
 
+builder.Services.Configure<OllamaOptions>(
+    builder.Configuration.GetSection("Ollama"));
+
+builder.Services.AddHttpClient();
+
 builder.Services.AddScoped<OpenAIService>();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddScoped<IChatService, OllamaService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 
 var app = builder.Build();
 
