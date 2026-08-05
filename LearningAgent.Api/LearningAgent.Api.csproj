@@ -13,7 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
+    <Folder Include="Services\RAG\" />
+    <Folder Include="Services\Tools\" />
   </ItemGroup>
 
 </Project>

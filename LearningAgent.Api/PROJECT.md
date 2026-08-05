@@ -39,15 +39,15 @@ Construir un agente de IA modular, desacoplado y escalable utilizando ASP.NET Co
 
 # Tecnologías
 
-| Tecnología | Uso |
-|------------|-----|
-| ASP.NET Core 8 | API REST |
-| C# | Lenguaje principal |
-| Ollama | Ejecución local del LLM |
-| Llama 3.2 | Modelo de lenguaje |
-| Swagger | Pruebas de la API |
-| HttpClientFactory | Consumo de APIs |
-| System.Text.Json | Serialización JSON |
+| Tecnología        | Uso                     |
+|-------------------|-------------------------|
+| ASP.NET Core 8    | API REST                |
+| C#                | Lenguaje principal      |
+| Ollama            | Ejecución local del LLM |
+| Llama 3.2         | Modelo de lenguaje      |
+| Swagger           | Pruebas de la API       |
+| HttpClientFactory | Consumo de APIs         |
+| System.Text.Json  | Serialización JSON      |
 
 ---
 

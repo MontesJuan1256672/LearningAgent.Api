@@ -1,5 +1,6 @@
 ﻿using LearningAgent.Api.Dtos;
 using LearningAgent.Api.Services;
+using LearningAgent.Api.Services.Agent;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LearningAgent.Api.Controllers;
@@ -8,17 +9,18 @@ namespace LearningAgent.Api.Controllers;
 [Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
-    private readonly IChatService _chatService;
+    private readonly IAgentService _agentService;
 
-    public ChatController(IChatService chatService)
+    public ChatController(IAgentService agentService)
     {
-        _chatService = chatService;
+        _agentService = agentService;
     }
 
     [HttpPost]
     public async Task<ActionResult<ChatResponse>> Chat(ChatRequest request)
     {
-        string response = await _chatService.GetResponseAsync(request.Message);
+        //string response = await _chatService.GetResponseAsync(request.Message);
+        string response = await _agentService.ProcessAsync(request.Message);
 
         return Ok(new ChatResponse
         {

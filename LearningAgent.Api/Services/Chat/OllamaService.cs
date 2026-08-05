@@ -1,10 +1,11 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using LearningAgent.Api.Contracts.Ollama;
+using LearningAgent.Api.Models.Chat;
 using LearningAgent.Api.Options;
 using Microsoft.Extensions.Options;
-using LearningAgent.Api.Contracts.Ollama;
+using System.Text;
+using System.Text.Json;
 
-namespace LearningAgent.Api.Services
+namespace LearningAgent.Api.Services.Chat
 {
     public class OllamaService : IChatService
     {
@@ -23,20 +24,20 @@ namespace LearningAgent.Api.Services
             _httpClient.BaseAddress = new Uri(_options.BaseUrl);
         }
 
-        public async Task<string> GetResponseAsync(string message)
+        public async Task<string> GetResponseAsync(IEnumerable<ConversationMessage> messages)
         {
             var request = new OllamaChatRequest
             {
                 Model = _options.Model,
                 Stream = false,
-                Messages =
-                [
-                    new OllamaMessage
+                Messages = messages
+                    .Select(m => new OllamaMessage
                     {
-                         Role = "user",
-                         Content = message
-                    }
-                ]
+                        Role = m.Role,
+                        Content = m.Content
+                    })
+                    .ToList()
+
             };
 
             string json = JsonSerializer.Serialize(request);
