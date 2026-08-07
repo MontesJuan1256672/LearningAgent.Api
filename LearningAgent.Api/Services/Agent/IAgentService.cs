@@ -1,7 +1,9 @@
-﻿namespace LearningAgent.Api.Services.Agent
+﻿using LearningAgent.Api.Models.Conversation;
+
+namespace LearningAgent.Api.Services.Agent
 {
     public interface IAgentService
     {
-        Task<string> ProcessAsync(string message);
+        Task<string> ProcessAsync(string messages);
     }
 }

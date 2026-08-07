@@ -1,6 +1,7 @@
 using LearningAgent.Api.Options;
 using LearningAgent.Api.Services.Agent;
 using LearningAgent.Api.Services.Chat;
+using LearningAgent.Api.Services.Conversation;
 using LearningAgent.Api.Services.Prompts;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,7 @@ builder.Services.AddScoped<IChatService, OllamaService>();
 builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IPromptBuilder, PromptBuilder>();
 builder.Services.AddScoped<ISystemPromptProvider, SystemPromptProvider>();
+builder.Services.AddScoped<IConversationContextFactory, ConversationContextFactory>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

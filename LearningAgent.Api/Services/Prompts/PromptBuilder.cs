@@ -1,4 +1,5 @@
 ﻿using LearningAgent.Api.Models.Chat;
+using LearningAgent.Api.Models.Conversation;
 
 namespace LearningAgent.Api.Services.Prompts;
 
@@ -11,22 +12,19 @@ public class PromptBuilder : IPromptBuilder
         _systemPromptProvider = systemPromptProvider;
     }
 
-    public IEnumerable<ConversationMessage> Build(string userMessage)
+    public IEnumerable<ConversationMessage> Build(ConversationContext contex)
     {
-        return new List<ConversationMessage>
-        {
-            new()
-            {
-                Role = "system",
-                Content = _systemPromptProvider.GetSystemPrompt()
-            },
+        var messages = new List<ConversationMessage>
+       {
+           new()
+           {
+               Role = "System",
+               Content = contex.SystemPrompt
+           }
+       };
 
-            new()
-            {
-                Role = "user",
-                Content = userMessage
-            }
-        };
+        messages.AddRange(contex.Messages);
+        return messages;
     }
 }
 
