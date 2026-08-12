@@ -7,16 +7,16 @@ public class ConversationContextFactory : IConversationContextFactory
 {
     private readonly ISystemPromptProvider _systemPromptProvider;
 
-    public ConversationContextFactory(
-        ISystemPromptProvider systemPromptProvider)
+    public ConversationContextFactory(ISystemPromptProvider systemPromptProvider)
     {
         _systemPromptProvider = systemPromptProvider;
     }
 
-    public ConversationContext Create()
+    public ConversationContext Create(Guid conversationId)
     {
         return new ConversationContext
         {
+            ConversationId = conversationId,
             SystemPrompt = _systemPromptProvider.GetSystemPrompt()
         };
     }

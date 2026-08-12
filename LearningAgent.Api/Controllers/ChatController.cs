@@ -20,7 +20,7 @@ public class ChatController : ControllerBase
     public async Task<ActionResult<ChatResponse>> Chat(ChatRequest request)
     {
         //string response = await _chatService.GetResponseAsync(request.Message);
-        string response = await _agentService.ProcessAsync(request.Message);
+        string response = await _agentService.ProcessAsync(request.ConversationId, request.Message);
 
         return Ok(new ChatResponse
         {

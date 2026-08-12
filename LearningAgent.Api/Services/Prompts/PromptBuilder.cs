@@ -5,11 +5,11 @@ namespace LearningAgent.Api.Services.Prompts;
 
 public class PromptBuilder : IPromptBuilder
 {
-    private readonly ISystemPromptProvider _systemPromptProvider;
+    //private readonly ISystemPromptProvider _systemPromptProvider;
 
     public PromptBuilder(ISystemPromptProvider systemPromptProvider)
     {
-        _systemPromptProvider = systemPromptProvider;
+        //_systemPromptProvider = systemPromptProvider;
     }
 
     public IEnumerable<ConversationMessage> Build(ConversationContext contex)

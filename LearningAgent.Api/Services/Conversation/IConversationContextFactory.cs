@@ -4,5 +4,5 @@ namespace LearningAgent.Api.Services.Conversation;
 
 public interface IConversationContextFactory
 {
-    ConversationContext Create();
+    ConversationContext Create(Guid conversationId);
 }
