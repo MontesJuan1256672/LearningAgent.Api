@@ -23,6 +23,7 @@ builder.Services.AddScoped<IPromptBuilder, PromptBuilder>();
 builder.Services.AddSingleton<ISystemPromptProvider, SystemPromptProvider>();
 builder.Services.AddSingleton<IConversationContextFactory, ConversationContextFactory>();
 builder.Services.AddSingleton<IMemoryService, MemoryService>();
+builder.Services.AddSingleton<IConversationStore, SqlConversationStore>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

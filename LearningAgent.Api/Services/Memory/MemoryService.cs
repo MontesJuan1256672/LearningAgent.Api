@@ -5,30 +5,34 @@ namespace LearningAgent.Api.Services.Memory;
 
 public class MemoryService : IMemoryService
 {
-    private readonly Dictionary<Guid, ConversationContext> _conversations = [];
     private readonly IConversationContextFactory _contextFactory;
+    private readonly IConversationStore _conversationStore;
 
-    public MemoryService(IConversationContextFactory contextFactory)
+    public MemoryService(IConversationContextFactory contextFactory, IConversationStore conversationStore)
     {
         _contextFactory = contextFactory;
+        _conversationStore = conversationStore;
     }
 
     public ConversationContext GetOrCreate(Guid conversationId)
     {
-        if (_conversations.TryGetValue(conversationId, out var context))
+        var context = _conversationStore.Get(conversationId);
+
+        if(context is not null)
         {
             return context;
         }
 
         context = _contextFactory.Create(conversationId);
 
-        _conversations[conversationId] = context;
+        _conversationStore.Save(context);
+
 
         return context;
     }
 
     public void Save(ConversationContext context)
     {
-        _conversations[context.ConversationId] = context;
+        _conversationStore.Save(context);
     }
 }

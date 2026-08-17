@@ -2,34 +2,38 @@
 
 ## 1. Propósito del proyecto
 
-**LearningAgent.Api** es un proyecto educativo para aprender a construir un agente de Inteligencia Artificial utilizando C# y ASP.NET Core.
+`LearningAgent.Api` es un proyecto educativo para aprender a construir un agente de Inteligencia Artificial utilizando C# y ASP.NET Core.
 
-El proyecto comenzó como una API sencilla para comunicarse con un Large Language Model (LLM) y ha evolucionado progresivamente hacia una arquitectura modular de agente.
+El objetivo no es solamente obtener un chatbot funcional, sino comprender progresivamente las decisiones de diseño y arquitectura necesarias para construir un agente mantenible.
 
-El objetivo final es construir un agente capaz de incorporar progresivamente:
+Tecnologías actuales:
 
-* conversación contextual;
-* memoria;
-* Tools;
-* acceso a SQL Server;
-* RAG;
-* integración con documentos;
-* persistencia de conversaciones;
-* posibilidad de cambiar de proveedor de LLM sin modificar la lógica principal del agente.
+- ASP.NET Core 8
+- C#
+- Ollama
+- Llama 3.2
+- Microsoft.Data.SqlClient 7.0.2
+- SQL Server LocalDB
+- Swagger
+- HttpClientFactory
+- System.Text.Json
 
-El proyecto prioriza el aprendizaje de arquitectura, separación de responsabilidades y comprensión de las decisiones de diseño antes que la incorporación rápida de funcionalidades.
+El proyecto evolucionará progresivamente hacia:
+
+- conversación contextual;
+- memoria;
+- persistencia;
+- concurrencia;
+- Tools;
+- RAG;
+- documentos;
+- cambio de proveedor LLM.
 
 ---
 
-# 2. Notas
+# 2. Metodología de aprendizaje
 
-Este proyecto tiene un enfoque completamente educativo.
-
-Cada fase busca comprender los conceptos y decisiones de diseño antes de incorporar nuevas funcionalidades.
-
-El objetivo final no es únicamente obtener un chatbot funcional, sino construir una arquitectura profesional para aplicaciones de Inteligencia Artificial utilizando .NET.
-
-La evolución del proyecto debe realizarse de forma incremental:
+La metodología utilizada durante el proyecto es:
 
 ```text
 Entender
@@ -45,254 +49,795 @@ Documentar
 Continuar
 ```
 
-No introducir abstracciones únicamente porque podrían ser útiles en el futuro.
+Reglas de trabajo:
 
-Cada componente debe tener una responsabilidad clara y una razón concreta para existir.
+1. No introducir abstracciones solamente porque podrían ser útiles en el futuro.
+2. Implementar una etapa a la vez.
+3. Probar cada cambio antes de continuar.
+4. Utilizar el debugger cuando sea útil para comprender el flujo.
+5. Explicar la responsabilidad de cada componente nuevo.
+6. Antes de introducir un concepto importante, hacer una pregunta breve para comprobar la comprensión cuando sea conveniente.
+7. Si el usuario no sabe responder, explicar la respuesta y continuar.
+8. No convertir cada paso en un examen.
+9. No adelantarse varias capas de arquitectura.
+10. Preferir comprender el problema antes de aplicar una solución.
 
----
-
-# 3. Tecnologías
-
-| Tecnología        | Uso                     |
-| ----------------- | ----------------------- |
-| ASP.NET Core 8    | API REST                |
-| C#                | Lenguaje principal      |
-| Ollama            | Ejecución local del LLM |
-| Llama 3.2         | Modelo de lenguaje      |
-| Swagger           | Pruebas de la API       |
-| HttpClientFactory | Consumo de APIs         |
-| System.Text.Json  | Serialización JSON      |
+El usuario quiere aprender razonando y no únicamente recibir código terminado.
 
 ---
 
-# 4. Estado actual del proyecto
+# 3. Estado general y porcentaje de avance
 
-## Fase 1 — Consumir un LLM
+## Avance estimado: 55%
 
-**Estado: completada**
-
-Se creó una API ASP.NET Core 8 y se consiguió comunicación funcional con Ollama utilizando el modelo local `llama3.2`.
-
-La API expone Swagger para realizar pruebas.
-
-La integración utiliza:
+Este porcentaje es una estimación respecto al objetivo global del proyecto, no una métrica automática.
 
 ```text
-POST http://localhost:11434/api/chat
+[███████████░░░░░░░░░] ~55%
 ```
 
-`OllamaService` transforma los mensajes internos `ConversationMessage` a los contratos específicos de Ollama, serializa el request, realiza la petición HTTP y deserializa la respuesta.
+### Completado
+
+- Consumo de un LLM.
+- Arquitectura base del agente.
+- Memoria conversacional en RAM.
+- Separación entre memoria y persistencia.
+- Abstracción `IConversationStore`.
+- Persistencia real en SQL Server.
+- Recuperación de conversaciones después de reiniciar la API.
+
+### Siguiente
+
+- Concurrencia por `ConversationId`.
+- Robustecimiento de persistencia.
+- Tools.
+- RAG.
+- Documentos.
+- Evolución del proveedor LLM.
+- Mejoras de arquitectura y observabilidad.
+
+El porcentaje debe actualizarse aproximadamente conforme se completen las etapas.
 
 ---
 
-## Fase 2 — Construcción de la arquitectura del agente
-
-**Estado: completada**
-
-Se separó la responsabilidad del agente de la comunicación con el LLM.
-
-El controlador depende de `IAgentService` y no directamente de `IChatService`.
-
-La arquitectura base quedó dividida en:
-
-* Controller;
-* Agent;
-* Conversation;
-* Prompt;
-* Chat/LLM.
-
----
-
-## Fase 3 — Memoria conversacional en RAM
-
-**Estado: completada**
-
-Se implementó memoria conversacional utilizando:
+# 4. Arquitectura actual
 
 ```text
-ConversationId
-      ↓
-MemoryService
-      ↓
+                         ChatController
+                              ↓
+                        IAgentService
+                              ↓
+                         AgentService
+                              ↓
+                        IMemoryService
+                              ↓
+                     IConversationStore
+                              ↓
+                    SqlConversationStore
+                              ↓
+                         SQL Server
+```
+
+Flujo conversacional:
+
+```text
+HTTP Request
+     ↓
+ChatController
+     ↓
+AgentService
+     ↓
+MemoryService.GetOrCreate()
+     ↓
+IConversationStore.Get()
+     ↓
 ConversationContext
-      ↓
-Messages
+     ↓
+agregar mensaje user
+     ↓
+PromptBuilder
+     ↓
+IChatService
+     ↓
+OllamaService
+     ↓
+Ollama / Llama 3.2
+     ↓
+agregar mensaje assistant
+     ↓
+MemoryService.Save()
+     ↓
+IConversationStore.Save()
+     ↓
+SQL Server
 ```
 
-La memoria permite mantener el historial de una conversación entre diferentes requests HTTP.
+---
 
-También se verificó que diferentes conversaciones permanezcan aisladas.
+# 5. Fase 1 — Consumir un LLM
 
-### Pruebas realizadas
+Completada.
 
-#### Prueba A — Persistencia entre requests
+La API se comunica correctamente con Ollama.
 
-Primer request:
-
-```json
-{
-  "conversationId": "11111111-1111-1111-1111-111111111111",
-  "message": "Me llamo Juan"
-}
-```
-
-Segundo request:
-
-```json
-{
-  "conversationId": "11111111-1111-1111-1111-111111111111",
-  "message": "¿Cómo me llamo?"
-}
-```
-
-Resultado:
+Configuración actual:
 
 ```text
-Llama 3.2 recordó correctamente que el nombre era Juan.
+BaseUrl = http://localhost:11434
+Model = llama3.2
 ```
 
-#### Prueba B — Aislamiento entre conversaciones
+Endpoint utilizado por `OllamaService`:
 
-Se utilizaron dos `ConversationId` diferentes.
+```text
+http://localhost:11434/api/chat
+```
+
+La arquitectura permite cambiar posteriormente el proveedor mediante `IChatService`.
+
+---
+
+# 6. Fase 2 — Arquitectura base del agente
+
+Completada.
+
+El controlador no depende directamente del proveedor LLM.
+
+```text
+ChatController
+      ↓
+IAgentService
+      ↓
+AgentService
+      ↓
+IChatService
+      ↓
+OllamaService
+      ↓
+Ollama / Llama 3.2
+```
+
+`AgentService` es el orquestador principal.
+
+Responsabilidades actuales:
+
+1. Obtener o crear la conversación.
+2. Agregar el mensaje del usuario.
+3. Construir el contexto para el LLM.
+4. Solicitar la respuesta al LLM.
+5. Agregar la respuesta del assistant.
+6. Guardar el contexto.
+
+---
+
+# 7. Fase 3 — Memoria conversacional en RAM
+
+Completada.
+
+Inicialmente la memoria se implementó mediante:
+
+```text
+Dictionary<Guid, ConversationContext>
+```
+
+Se realizaron pruebas de:
+
+### Misma conversación
+
+```text
+Conversation A
+"Me llamo Juan"
+"¿Cómo me llamo?"
+→ recordó Juan
+```
+
+### Aislamiento
 
 ```text
 Conversation A → Juan
 Conversation B → Pedro
 ```
 
-Al preguntar posteriormente el nombre en cada conversación:
+Resultado:
 
 ```text
 A → Juan
 B → Pedro
 ```
 
-Las conversaciones no se mezclaron.
+Se confirmó que las conversaciones no se mezclaban.
 
-### Resultado
+Limitaciones identificadas:
 
-La memoria conversacional en RAM funciona correctamente.
+- La memoria RAM se pierde al reiniciar la API.
+- No funciona como almacenamiento persistente.
+- El `Dictionary` no es suficiente para resolver concurrencia.
+- Una instancia de la aplicación no comparte automáticamente la memoria con otra instancia.
 
 ---
 
-# 5. Arquitectura actual
+# 8. Fase 4 — Separación entre memoria y persistencia
+
+Completada.
+
+Se introdujo:
+
+```csharp
+IConversationStore
+```
+
+Contrato mínimo:
+
+```csharp
+ConversationContext? Get(Guid conversationId);
+
+void Save(ConversationContext context);
+```
+
+Arquitectura:
 
 ```text
-                         +----------------+
-                         |     Cliente    |
-                         +-------+--------+
-                                 |
-                                 | HTTP POST
-                                 | ConversationId + Message
-                                 v
-                         +----------------+
-                         | ChatController |
-                         +-------+--------+
-                                 |
-                                 | IAgentService
-                                 v
-                         +----------------+
-                         |  AgentService  |
-                         +-------+--------+
-                                 |
-                                 v
-                         +----------------+
-                         | MemoryService  |
-                         +-------+--------+
-                                 |
-                         GetOrCreate(id)
-                                 |
-                                 v
-                    +------------------------+
-                    | ConversationContext    |
-                    |                        |
-                    | ConversationId         |
-                    | SystemPrompt           |
-                    | Messages               |
-                    +-----------+------------+
-                                |
-                                v
-                         +--------------+
-                         | PromptBuilder|
-                         +------+-------+
-                                |
-                                v
-                         +--------------+
-                         | IChatService |
-                         +------+-------+
-                                |
-                                v
-                         +--------------+
-                         |OllamaService |
-                         +------+-------+
-                                |
-                                v
-                         +--------------+
-                         |    Ollama    |
-                         +------+-------+
-                                |
-                                v
-                         +--------------+
-                         |   Llama 3.2  |
-                         +--------------+
+MemoryService
+      ↓
+IConversationStore
+      ↓
+implementación de almacenamiento
+```
+
+Decisión arquitectónica:
+
+> `MemoryService` administra la memoria del agente y delega la persistencia a un Store.
+
+`MemoryService` no conoce SQL Server.
+
+---
+
+# 9. InMemoryConversationStore
+
+Se creó `InMemoryConversationStore` como implementación de `IConversationStore` para validar la separación de responsabilidades sin introducir SQL inmediatamente.
+
+Actualmente existe en el proyecto, pero no es la implementación activa.
+
+---
+
+# 10. Fase 5 — Persistencia SQL Server
+
+Completada.
+
+Se eligió:
+
+```text
+Microsoft.Data.SqlClient
+```
+
+Paquete:
+
+```xml
+<PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+```
+
+Base de datos:
+
+```text
+LearningAgentDb
+```
+
+Esquema:
+
+```text
+Agent
+```
+
+Tablas:
+
+```text
+Agent.Conversations
+Agent.ConversationMessages
 ```
 
 ---
 
-# 6. Flujo de una conversación
+# 11. Esquema SQL actual
 
-Una petición sigue este flujo:
+```sql
+CREATE TABLE Agent.Conversations
+(
+    ConversationId UNIQUEIDENTIFIER NOT NULL,
+    SystemPrompt NVARCHAR(MAX) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL
+        CONSTRAINT DF_Conversations_CreatedAt
+        DEFAULT SYSUTCDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL
+        CONSTRAINT DF_Conversations_UpdatedAt
+        DEFAULT SYSUTCDATETIME(),
 
-```text
-ChatController
-      |
-      | ConversationId + Message
-      v
-AgentService
-      |
-      v
-MemoryService.GetOrCreate()
-      |
-      +---- existe ----> recuperar ConversationContext
-      |
-      +---- no existe -> ConversationContextFactory
-                              |
-                              v
-                       SystemPromptProvider
-      |
-      v
-ConversationContext
-      |
-      +--> historial existente
-      +--> nuevo mensaje
-      |
-      v
-PromptBuilder
-      |
-      v
-IChatService
-      |
-      v
-OllamaService
-      |
-      v
-Llama 3.2
-      |
-      v
-respuesta
-      |
-      v
-ConversationContext
-      |
-      +--> agrega respuesta assistant
-      |
-      v
-MemoryService.Save()
+    CONSTRAINT PK_Conversations
+        PRIMARY KEY (ConversationId)
+);
+
+CREATE TABLE Agent.ConversationMessages
+(
+    MessageId BIGINT IDENTITY(1,1) NOT NULL,
+    ConversationId UNIQUEIDENTIFIER NOT NULL,
+    Role NVARCHAR(50) NOT NULL,
+    Content NVARCHAR(MAX) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL
+        CONSTRAINT DF_ConversationMessages_CreatedAt
+        DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT PK_ConversationMessages
+        PRIMARY KEY (MessageId),
+
+    CONSTRAINT FK_ConversationMessages_Conversations
+        FOREIGN KEY (ConversationId)
+        REFERENCES Agent.Conversations(ConversationId)
+);
+
+CREATE INDEX IX_ConversationMessages_ConversationId
+ON Agent.ConversationMessages (ConversationId);
 ```
 
 ---
 
-# 7. Estructura actual
+# 12. SqlConversationStore
+
+Implementación activa:
+
+```text
+IConversationStore
+        ↑
+        │
+SqlConversationStore
+        ↓
+Microsoft.Data.SqlClient
+        ↓
+SQL Server
+```
+
+Responsabilidades:
+
+- abrir conexiones;
+- ejecutar consultas SQL;
+- reconstruir `ConversationContext`;
+- guardar conversaciones;
+- guardar mensajes;
+- utilizar transacciones.
+
+Registro actual:
+
+```csharp
+builder.Services.AddSingleton<IConversationStore, SqlConversationStore>();
+```
+
+---
+
+# 13. Get()
+
+`Get()` realiza dos consultas:
+
+```sql
+SELECT ConversationId, SystemPrompt
+FROM Agent.Conversations
+WHERE ConversationId = @ConversationId;
+```
+
+y:
+
+```sql
+SELECT Role, Content
+FROM Agent.ConversationMessages
+WHERE ConversationId = @ConversationId
+ORDER BY MessageId;
+```
+
+Los resultados se reconstruyen en:
+
+```text
+ConversationContext
+    ├── ConversationId
+    ├── SystemPrompt
+    └── Messages
+         ├── ConversationMessage
+         ├── ConversationMessage
+         └── ...
+```
+
+Se verificó mediante debugger que los mensajes recuperados desde SQL llegan correctamente al `ConversationContext`.
+
+---
+
+# 14. Save()
+
+La implementación actual utiliza una transacción.
+
+Flujo:
+
+```text
+Save(context)
+    ↓
+BEGIN TRANSACTION
+    ↓
+UPDATE Conversation
+    ↓
+si no existe → INSERT Conversation
+    ↓
+COUNT mensajes existentes
+    ↓
+INSERT solamente mensajes nuevos
+    ↓
+COMMIT
+```
+
+Si ocurre una excepción:
+
+```text
+ROLLBACK
+```
+
+La estrategia actual asume que:
+
+1. `Get()` devuelve mensajes ordenados por `MessageId`.
+2. Los mensajes nuevos se agregan al final de `context.Messages`.
+3. `AgentService` es quien modifica la conversación.
+4. Todavía no existe procesamiento concurrente controlado para la misma conversación.
+
+Esta estrategia funcionó correctamente en las pruebas realizadas.
+
+---
+
+# 15. Pruebas de persistencia realizadas
+
+## Recuperar conversación existente
+
+Se utilizó un `ConversationId` existente en SQL Server y se comprobó que el historial completo fue recuperado.
+
+## Agregar mensajes sin eliminar los anteriores
+
+Se comprobó que los mensajes anteriores permanecieron y solamente se agregaron los nuevos.
+
+## Crear conversación nueva
+
+Cuando el `ConversationId` no existía:
+
+```text
+Get()
+ ↓
+SQL → null
+ ↓
+ConversationContextFactory.Create()
+ ↓
+Save()
+ ↓
+INSERT Conversation
+ ↓
+INSERT Messages
+```
+
+Funcionó.
+
+## Reiniciar la API
+
+Se creó una conversación, se detuvo la API, se inició nuevamente y se utilizó el mismo `ConversationId` para realizar una pregunta dependiente del historial.
+
+La conversación fue recuperada desde SQL Server después del reinicio y el LLM pudo utilizar el historial.
+
+Conclusión:
+
+> La memoria conversacional ya no depende exclusivamente de RAM y sobrevive al reinicio de la aplicación.
+
+---
+
+# 16. MemoryService actual
+
+```csharp
+public ConversationContext GetOrCreate(Guid conversationId)
+{
+    var context = _conversationStore.Get(conversationId);
+
+    if (context is not null)
+    {
+        return context;
+    }
+
+    context = _contextFactory.Create(conversationId);
+
+    _conversationStore.Save(context);
+
+    return context;
+}
+
+public void Save(ConversationContext context)
+{
+    _conversationStore.Save(context);
+}
+```
+
+Responsabilidades actuales:
+
+- obtener una conversación mediante el Store;
+- crear una conversación mediante la Factory cuando no existe;
+- delegar el guardado al Store.
+
+Importante: aunque inicialmente se había contemplado una caché RAM dentro de `MemoryService`, la implementación actual ya no mantiene un `Dictionary` propio. Actualmente delega directamente en `IConversationStore`.
+
+---
+
+# 17. Modelos actuales
+
+## ConversationContext
+
+```csharp
+public class ConversationContext
+{
+    public Guid ConversationId { get; init; } = Guid.NewGuid();
+
+    public List<ConversationMessage> Messages { get; } = [];
+
+    public string SystemPrompt { get; set; } = string.Empty;
+}
+```
+
+## ConversationMessage
+
+```csharp
+public class ConversationMessage
+{
+    public string Role { get; set; } = string.Empty;
+
+    public string Content { get; set; } = string.Empty;
+}
+```
+
+`ConversationMessage` actualmente no contiene `MessageId`. `MessageId` pertenece a la persistencia SQL y no se ha incorporado al modelo conversacional.
+
+---
+
+# 18. DI actual
+
+```csharp
+builder.Services.AddScoped<OpenAIService>();
+builder.Services.AddScoped<IChatService, OllamaService>();
+builder.Services.AddScoped<IAgentService, AgentService>();
+builder.Services.AddScoped<IPromptBuilder, PromptBuilder>();
+
+builder.Services.AddSingleton<ISystemPromptProvider, SystemPromptProvider>();
+builder.Services.AddSingleton<IConversationContextFactory, ConversationContextFactory>();
+builder.Services.AddSingleton<IMemoryService, MemoryService>();
+builder.Services.AddSingleton<IConversationStore, SqlConversationStore>();
+```
+
+Actualmente:
+
+- `AgentService` → Scoped
+- `IChatService` / `OllamaService` → Scoped
+- `IPromptBuilder` → Scoped
+- `MemoryService` → Singleton
+- `IConversationStore` → Singleton
+- `ConversationContextFactory` → Singleton
+- `SystemPromptProvider` → Singleton
+
+---
+
+# 19. Próxima etapa — Concurrencia
+
+## Objetivo
+
+Resolver correctamente qué ocurre cuando dos requests trabajan simultáneamente con la misma conversación.
+
+Ejemplo:
+
+```text
+Request A ──────┐
+                ├── Conversation X
+Request B ──────┘
+```
+
+Existen dos problemas diferentes:
+
+### Thread safety
+
+Acceso concurrente a estructuras compartidas.
+
+### Concurrencia lógica
+
+Dos requests pueden leer y modificar el mismo estado conversacional al mismo tiempo.
+
+Ejemplo:
+
+```text
+Request A
+    ↓
+Get Conversation X
+    ↓
+procesa LLM
+
+Request B
+    ↓
+Get Conversation X
+    ↓
+procesa LLM
+```
+
+Ambos pueden terminar trabajando sobre versiones diferentes del historial.
+
+---
+
+# 20. Decisión conceptual sobre concurrencia
+
+El control de concurrencia pertenece conceptualmente a `MemoryService`.
+
+No debe introducirse directamente en `AgentService`.
+
+Tampoco debe delegarse completamente al `IConversationStore`, porque el problema abarca el estado vivo y el procesamiento completo de la conversación.
+
+La unidad natural de sincronización es:
+
+```text
+ConversationId
+```
+
+Conceptualmente:
+
+```text
+Conversation A → lock A
+Conversation B → lock B
+Conversation C → lock C
+```
+
+Esto permite que una conversación esté siendo procesada sin bloquear las demás.
+
+---
+
+# 21. Advertencia para la siguiente etapa
+
+NO implementar simplemente:
+
+```csharp
+lock (...)
+{
+    GetOrCreate();
+}
+```
+
+porque el procesamiento completo incluye una operación asíncrona con el LLM:
+
+```text
+Get context
+    ↓
+add user message
+    ↓
+build prompt
+    ↓
+await LLM
+    ↓
+add assistant message
+    ↓
+Save
+```
+
+Un bloqueo que solamente cubra `GetOrCreate()` no protege la operación completa.
+
+Además, `lock` tradicional no es la solución adecuada para mantener un bloqueo a través de un `await`.
+
+La siguiente etapa debe estudiar y elegir un mecanismo de sincronización asíncrono por `ConversationId`.
+
+---
+
+# 22. Objetivo inmediato del próximo chat
+
+El próximo chat debe comenzar con:
+
+> Diseñar e implementar concurrencia por `ConversationId`.
+
+No comenzar todavía con:
+
+- Tools;
+- RAG;
+- embeddings;
+- documentos;
+- nuevos proveedores LLM.
+
+Primero resolver la consistencia de las conversaciones.
+
+---
+
+# 23. Estrategia recomendada para la próxima etapa
+
+### Paso 1 — Comprender el problema
+
+Crear un escenario controlado donde dos requests utilicen la misma conversación.
+
+### Paso 2 — Reproducir el problema
+
+Demostrar qué puede ocurrir sin sincronización.
+
+### Paso 3 — Elegir mecanismo
+
+Evaluar una solución basada en sincronización asíncrona por `ConversationId`.
+
+Debe:
+
+- permitir concurrencia entre conversaciones diferentes;
+- serializar operaciones de una misma conversación;
+- funcionar correctamente con `async/await`;
+- evitar bloquear innecesariamente todo el servicio.
+
+### Paso 4 — Implementar
+
+Modificar la capa responsable de administrar la memoria/conversación.
+
+### Paso 5 — Probar
+
+Escenarios mínimos:
+
+```text
+Conversation A + Request A
+Conversation A + Request B
+```
+
+El primer caso debe serializarse.
+
+Y:
+
+```text
+Conversation A + Request A
+Conversation B + Request B
+```
+
+El segundo debe poder ejecutarse independientemente.
+
+### Paso 6 — Revisar persistencia
+
+Verificar que `SqlConversationStore.Save()` sigue siendo consistente bajo el nuevo modelo.
+
+### Paso 7 — Documentar
+
+Actualizar `PROJECT.md` y `CHANGELOG.md`.
+
+---
+
+# 24. Arquitectura objetivo inmediata
+
+```text
+                         ChatController
+                              ↓
+                        IAgentService
+                              ↓
+                         AgentService
+                              ↓
+                        IMemoryService
+                              ↓
+                 ┌────────────────────────┐
+                 │ sincronización por     │
+                 │ ConversationId         │
+                 └───────────┬────────────┘
+                             ↓
+                    IConversationStore
+                             ↓
+                   SqlConversationStore
+                             ↓
+                        SQL Server
+```
+
+---
+
+# 25. Restricciones para el próximo chat
+
+- No cambiar el proveedor LLM.
+- Mantener Ollama + Llama 3.2.
+- No agregar EF Core.
+- Continuar utilizando `Microsoft.Data.SqlClient`.
+- No introducir una arquitectura innecesariamente compleja.
+- No agregar propiedades de persistencia al dominio sin una razón clara.
+- No resolver concurrencia mediante un lock global que bloquee todas las conversaciones.
+- No implementar concurrencia avanzada antes de reproducir y comprender el problema.
+- Mantener `AgentService` como orquestador y evitar cargarlo con detalles de sincronización si pueden permanecer en `MemoryService`.
+- Probar cada cambio antes de avanzar.
+- Hacer preguntas breves de comprobación cuando aparezca un concepto importante.
+
+---
+
+# 26. Estructura actual del proyecto
 
 ```text
 LearningAgent.Api
@@ -332,7 +877,10 @@ LearningAgent.Api
 │   │
 │   ├── Conversation
 │   │   ├── ConversationContextFactory.cs
-│   │   └── IConversationContextFactory.cs
+│   │   ├── IConversationContextFactory.cs
+│   │   ├── IConversationStore.cs
+│   │   ├── InMemoryConversationStore.cs
+│   │   └── SqlConversationStore.cs
 │   │
 │   ├── Memory
 │   │   ├── IMemoryService.cs
@@ -351,863 +899,93 @@ LearningAgent.Api
 └── appsettings.json
 ```
 
-> `ConversationMemory.cs` e `IConversationMemory.cs` fueron eliminados al no tener una responsabilidad diferente al sistema de memoria basado en `ConversationContext` + `MemoryService`.
-
 ---
 
-# 8. Componentes principales
-
-## 8.1 ChatController
-
-Responsabilidad:
-
-* recibir la petición HTTP;
-* obtener `ConversationId` y `Message`;
-* delegar el procesamiento al agente;
-* devolver `ChatResponse`.
-
-El controlador no contiene lógica de conversación ni de memoria.
-
----
-
-## 8.2 AgentService
-
-`AgentService` es el orquestador principal.
-
-Depende de:
-
-```csharp
-IChatService
-IPromptBuilder
-IMemoryService
-```
-
-No depende directamente de:
-
-```csharp
-OllamaService
-ConversationContextFactory
-```
-
-El flujo de `ProcessAsync` es:
+# 27. Estado funcional actual
 
 ```text
-1. Obtener o crear ConversationContext.
-2. Agregar mensaje del usuario.
-3. Construir mensajes mediante PromptBuilder.
-4. Enviar mensajes a IChatService.
-5. Agregar respuesta del asistente.
-6. Guardar el contexto.
-7. Devolver la respuesta.
+✓ Recibir un ConversationId
+✓ Recibir un mensaje
+✓ Crear una conversación
+✓ Recuperar una conversación existente
+✓ Mantener historial conversacional
+✓ Construir contexto para el LLM
+✓ Consultar Ollama
+✓ Guardar respuestas
+✓ Persistir conversaciones en SQL Server
+✓ Recuperar conversaciones después de reiniciar la API
+✓ Mantener conversaciones independientes
+✓ Agregar solamente mensajes nuevos durante Save()
 ```
 
-La firma actual es:
-
-```csharp
-Task<string> ProcessAsync(
-    Guid conversationId,
-    string message);
-```
-
----
-
-# 9. MemoryService
-
-`MemoryService` administra las conversaciones activas en memoria.
-
-La interfaz es:
-
-```csharp
-public interface IMemoryService
-{
-    ConversationContext GetOrCreate(Guid conversationId);
-
-    void Save(ConversationContext context);
-}
-```
-
-La implementación utiliza:
-
-```csharp
-Dictionary<Guid, ConversationContext>
-```
-
-El método:
-
-```csharp
-GetOrCreate(Guid conversationId)
-```
-
-busca una conversación existente.
-
-Si existe:
+Todavía no resuelve completamente:
 
 ```text
-ConversationId
-      ↓
-Dictionary
-      ↓
-ConversationContext existente
+○ Concurrencia de múltiples requests sobre la misma conversación
+○ Caché/memoria RAM como capa separada de persistencia
+○ Tools
+○ RAG
+○ Documentos
+○ Observabilidad avanzada
+○ Escalamiento a múltiples instancias
 ```
-
-Si no existe:
-
-```text
-ConversationId
-      ↓
-ConversationContextFactory
-      ↓
-ConversationContext nuevo
-      ↓
-Dictionary
-```
-
----
-
-# 10. Lifetime de MemoryService
-
-`MemoryService` está registrado como:
-
-```csharp
-builder.Services.AddSingleton<IMemoryService, MemoryService>();
-```
-
-Esto es intencional.
-
-El diccionario debe sobrevivir entre diferentes requests HTTP.
-
-Si `MemoryService` fuera `Scoped`, cada request tendría una instancia diferente y el historial se perdería al terminar cada petición.
-
-Por lo tanto:
-
-```text
-Request 1
-    ↓
-MemoryService Singleton
-    ↓
-Conversation A
-
-Request 2
-    ↓
-MemoryService Singleton
-    ↓
-Conversation A existente
-```
-
----
-
-# 11. ConversationContext
-
-`ConversationContext` representa el estado de una conversación.
-
-Contiene:
-
-```csharp
-Guid ConversationId
-List<ConversationMessage> Messages
-string SystemPrompt
-```
-
-El contexto es el centro de la arquitectura conversacional.
-
-En futuras fases podrá incorporar, cuando sea necesario:
-
-* usuario;
-* metadata;
-* variables;
-* herramientas;
-* resultados de herramientas;
-* información recuperada mediante RAG;
-* otros datos necesarios para decidir la respuesta.
-
-No agregar propiedades prematuramente.
-
----
-
-# 12. ConversationContextFactory
-
-La fábrica es responsable de crear un `ConversationContext` correctamente inicializado.
-
-Recibe:
-
-```csharp
-ISystemPromptProvider
-```
-
-y expone:
-
-```csharp
-ConversationContext Create(Guid conversationId);
-```
-
-La creación establece:
-
-```text
-ConversationId
-SystemPrompt
-```
-
-El flujo es:
-
-```text
-ConversationContextFactory
-          |
-          v
-SystemPromptProvider
-          |
-          v
-ConversationContext
-```
-
-`MemoryService` utiliza la fábrica cuando necesita crear una nueva conversación.
-
-De esta manera `MemoryService` no necesita conocer los detalles de construcción del contexto.
-
----
-
-# 13. PromptBuilder
-
-`PromptBuilder` transforma un `ConversationContext` en una colección de `ConversationMessage`.
-
-Construye:
-
-```text
-System message
-+
-Messages del contexto
-```
-
-Conceptualmente:
-
-```text
-ConversationContext
-       |
-       +--> SystemPrompt
-       |
-       +--> Messages
-       |
-       v
-PromptBuilder
-       |
-       v
-IEnumerable<ConversationMessage>
-```
-
-`PromptBuilder` no debe depender de un proveedor específico de LLM.
-
-El `SystemPrompt` ya forma parte de `ConversationContext`.
-
----
-
-# 14. SystemPromptProvider
-
-`SystemPromptProvider` proporciona las instrucciones base del agente.
-
-Actualmente define el comportamiento general de `LearningAgent`.
-
-Su responsabilidad es proporcionar el prompt base, mientras que `ConversationContext` conserva el prompt correspondiente a la conversación.
-
----
-
-# 15. IChatService
-
-La interfaz es:
-
-```csharp
-Task<string> GetResponseAsync(
-    IEnumerable<ConversationMessage> messages);
-```
-
-Esto permite enviar al LLM:
-
-* system message;
-* historial;
-* mensajes del usuario;
-* respuestas anteriores;
-* futuros resultados de herramientas.
-
-El agente no depende de un proveedor concreto.
-
----
-
-# 16. OllamaService
-
-`OllamaService` implementa `IChatService`.
-
-Su única responsabilidad es comunicarse con Ollama.
-
-Proceso:
-
-```text
-ConversationMessage[]
-        |
-        v
-OllamaChatRequest
-        |
-        v
-JSON
-        |
-        v
-HTTP POST /api/chat
-        |
-        v
-Ollama
-        |
-        v
-OllamaChatResponse
-        |
-        v
-string response
-```
-
-No contiene lógica de memoria ni lógica del agente.
-
----
-
-# 17. OpenAIService
-
-Existe una implementación `OpenAIService` como parte del aprendizaje inicial.
-
-La integración con OpenAI produjo:
-
-```text
-HTTP 429 insufficient_quota
-```
-
-Debido al objetivo educativo y a la intención de evitar costos de API, se decidió utilizar Ollama localmente.
-
-Actualmente:
-
-* `OllamaService` es el proveedor activo.
-* `OpenAIService` permanece como referencia.
-* `IChatService` permite cambiar de proveedor sin modificar `AgentService`.
-
----
-
-# 18. Dependency Injection
-
-La configuración actual relevante es:
-
-```csharp
-builder.Services.AddHttpClient();
-
-builder.Services.AddScoped<OpenAIService>();
-builder.Services.AddScoped<IChatService, OllamaService>();
-builder.Services.AddScoped<IAgentService, AgentService>();
-builder.Services.AddScoped<IPromptBuilder, PromptBuilder>();
-
-builder.Services.AddSingleton<ISystemPromptProvider, SystemPromptProvider>();
-builder.Services.AddSingleton<IConversationContextFactory, ConversationContextFactory>();
-builder.Services.AddSingleton<IMemoryService, MemoryService>();
-```
-
-### Decisión importante sobre lifetimes
-
-`MemoryService` es `Singleton` porque mantiene estado entre requests.
-
-`ConversationContextFactory` y `SystemPromptProvider` también son `Singleton` porque son dependencias de `MemoryService` y actualmente no mantienen estado específico de un request.
-
-Los servicios relacionados con la ejecución de cada request permanecen `Scoped`.
-
----
-
-# 19. ChatRequest
-
-Actualmente:
-
-```csharp
-public class ChatRequest
-{
-    public Guid ConversationId { get; set; }
-
-    public string Message { get; set; } = string.Empty;
-}
-```
-
-`ConversationId` identifica la conversación a la que pertenece el mensaje.
-
-El mismo identificador permite recuperar el historial correspondiente.
-
----
-
-# 20. ChatResponse
-
-Actualmente:
-
-```csharp
-public class ChatResponse
-{
-    public string Response { get; set; } = string.Empty;
-}
-```
-
-No es necesario devolver el `ConversationId` porque actualmente el cliente lo proporciona en cada request.
-
-En una fase futura puede evaluarse un flujo donde la API cree conversaciones y devuelva el identificador.
-
----
-
-# 21. Limitaciones actuales de la memoria
-
-La memoria actual es deliberadamente simple y educativa.
-
-Utiliza:
-
-```csharp
-Dictionary<Guid, ConversationContext>
-```
-
-en memoria RAM.
-
-Por lo tanto:
-
-### Reinicio de aplicación
-
-Si la API se detiene y vuelve a iniciar:
-
-```text
-Memoria → perdida
-```
-
-Esto es esperado.
-
-### Múltiples instancias
-
-La memoria no está compartida entre diferentes instancias de la API.
-
-### Persistencia
-
-No existe persistencia permanente.
-
-### Concurrencia
-
-La implementación actual utiliza un `Dictionary` estándar y no está diseñada todavía como una solución de almacenamiento concurrente de producción.
-
-Estas limitaciones son intencionales en esta etapa.
-
----
-
-# 22. Configuración
-
-Las opciones actuales incluyen:
-
-```text
-OpenAI
-Ollama
-```
-
-Configuración relevante:
-
-```json
-"Ollama": {
-  "BaseUrl": "http://localhost:11434",
-  "Model": "llama3.2"
-}
-```
-
-Ollama se ejecuta localmente.
-
-El objetivo educativo es evitar costos de API mientras se aprende la arquitectura.
-
----
-
-# 23. Pruebas completadas
-
-## Prueba A — misma conversación
-
-```text
-ConversationId = A
-
-Usuario:
-Me llamo Juan
-
-Usuario:
-¿Cómo me llamo?
-```
-
-Resultado:
-
-```text
-El agente recordó correctamente "Juan".
-```
-
-## Prueba B — conversaciones independientes
-
-```text
-ConversationId A → Juan
-ConversationId B → Pedro
-```
-
-Resultado:
-
-```text
-A → Juan
-B → Pedro
-```
-
-Las conversaciones no se mezclaron.
-
-## Prueba C — reinicio de aplicación
-
-Comportamiento esperado:
-
-```text
-Detener API
-    ↓
-Reiniciar API
-    ↓
-Memoria perdida
-```
-
-Esto es correcto porque la implementación actual utiliza memoria RAM.
-
----
-
-# 24. Decisiones arquitectónicas importantes
-
-## El LLM no es el agente
-
-`OllamaService` únicamente comunica con el modelo.
-
-El agente coordina:
-
-* contexto;
-* prompts;
-* memoria;
-* herramientas futuras;
-* conocimiento futuro;
-* LLM.
-
----
-
-## No acoplar el agente a Ollama
-
-El agente depende de:
-
-```csharp
-IChatService
-```
-
-y no directamente de:
-
-```csharp
-OllamaService
-```
-
-Esto permitirá cambiar posteriormente de proveedor sin modificar la lógica principal del agente.
-
----
-
-## El contexto es el centro
-
-`ConversationContext` representa el estado de una conversación.
-
-La memoria se encarga de almacenarlo y recuperarlo.
-
-El agente lo utiliza.
-
-`PromptBuilder` lo transforma en mensajes para el LLM.
-
----
-
-## La memoria no pertenece al Controller
-
-`ChatController` únicamente recibe la petición y delega.
-
-No debe conocer:
-
-* `Dictionary`;
-* historial;
-* `ConversationContext`;
-* almacenamiento;
-* proveedor de LLM.
-
----
-
-# 25. Lo que NO se debe implementar todavía
-
-La siguiente fase debe comenzar únicamente después de confirmar que la fase actual está correctamente documentada.
-
-No introducir todavía:
-
-* SQL Server;
-* Entity Framework;
-* Redis;
-* RAG;
-* embeddings;
-* vector databases;
-* Tools;
-* agentes autónomos complejos;
-* persistencia permanente.
-
-La memoria RAM debe considerarse la implementación educativa base sobre la cual se podrá evolucionar posteriormente.
-
----
-
-# 26. Fases posteriores
-
-## Fase siguiente — Memoria persistente
-
-Evaluar persistencia mediante SQL Server.
-
-Objetivo conceptual:
-
-```text
-Conversation
-    |
-    +--> ConversationId
-    +--> User
-    +--> Messages
-    +--> Timestamp
-```
-
-La persistencia permitirá conservar conversaciones después de reiniciar la aplicación.
-
----
-
-## Tools
-
-Permitir que el agente pueda ejecutar funciones de C#.
-
-Ejemplos futuros:
-
-```text
-GetCurrentDate()
-ConsultarEmpleado()
-ConsultarSQL()
-LeerArchivo()
-```
-
----
-
-## RAG
-
-Agregar conocimiento externo al contexto:
-
-```text
-Pregunta
-   |
-   v
-Retriever
-   |
-   v
-Documentos relevantes
-   |
-   v
-ConversationContext
-   |
-   v
-LLM
-```
-
----
-
-# 27. Estado exacto para continuar
-
-El proyecto actualmente tiene funcionando:
-
-* ASP.NET Core 8;
-* API REST;
-* Swagger;
-* Ollama local;
-* Llama 3.2;
-* `IChatService`;
-* `OllamaService`;
-* `IAgentService`;
-* `AgentService`;
-* `ConversationContext`;
-* `IConversationContextFactory`;
-* `ConversationContextFactory`;
-* `IPromptBuilder`;
-* `PromptBuilder`;
-* `ISystemPromptProvider`;
-* `SystemPromptProvider`;
-* `IMemoryService`;
-* `MemoryService`;
-* `ConversationId` en `ChatRequest`.
-
-La memoria conversacional en RAM está implementada y probada.
-
-Las pruebas realizadas confirmaron:
-
-```text
-Mismo ConversationId
-        ↓
-mismo historial
-        ↓
-memoria funcional
-```
-
-y:
-
-```text
-ConversationId A
-        ≠
-ConversationId B
-        ↓
-historiales independientes
-```
-
-La siguiente fase lógica es evaluar **memoria persistente**, pero antes de implementarla se debe analizar qué responsabilidades deben permanecer en `MemoryService` y qué responsabilidades deben pasar a una capa de persistencia.
 
 ---
 
 # 28. Prompt de continuidad para el próximo chat
 
-Utiliza el siguiente texto como contexto inicial del próximo chat:
+Estamos continuando el proyecto `LearningAgent.Api`.
 
-> Estoy desarrollando un proyecto educativo llamado `LearningAgent.Api` utilizando ASP.NET Core 8, C# y Ollama con el modelo local `llama3.2`.
->
-> El objetivo final es construir un agente de IA modular que pueda incorporar memoria, Tools, RAG, SQL Server, documentos y persistencia de conversaciones.
->
-> La API funciona correctamente desde Swagger.
->
-> La arquitectura actual es:
->
-> ```text
-> ChatController
->       |
->       v
-> IAgentService
->       |
->       v
-> AgentService
->       |
->       v
-> IMemoryService
->       |
->       v
-> MemoryService
->       |
->       v
-> ConversationContext
->       |
->       v
-> PromptBuilder
->       |
->       v
-> IChatService
->       |
->       v
-> OllamaService
->       |
->       v
-> Ollama / Llama 3.2
-> ```
->
-> `ConversationContext` contiene:
->
-> ```csharp
-> Guid ConversationId
-> List<ConversationMessage> Messages
-> string SystemPrompt
-> ```
->
-> `ConversationContextFactory` crea nuevos contextos y obtiene el `SystemPrompt` mediante `ISystemPromptProvider`.
->
-> `MemoryService` utiliza:
->
-> ```csharp
-> Dictionary<Guid, ConversationContext>
-> ```
->
-> y está registrado como:
->
-> ```csharp
-> builder.Services.AddSingleton<IMemoryService, MemoryService>();
-> ```
->
-> También están registrados como Singleton:
->
-> ```csharp
-> ISystemPromptProvider
-> IConversationContextFactory
-> IMemoryService
-> ```
->
-> `AgentService` recibe:
->
-> ```csharp
-> IChatService
-> IPromptBuilder
-> IMemoryService
-> ```
->
-> y su flujo es:
->
-> ```text
-> GetOrCreate(conversationId)
->       ↓
-> agregar mensaje user
->       ↓
-> PromptBuilder
->       ↓
-> IChatService
->       ↓
-> agregar respuesta assistant
->       ↓
-> MemoryService.Save()
-> ```
->
-> La memoria conversacional en RAM ya fue probada correctamente.
->
-> Prueba 1:
->
-> ```text
-> ConversationId A
-> "Me llamo Juan"
-> "¿Cómo me llamo?"
-> → recordó Juan
-> ```
->
-> Prueba 2:
->
-> ```text
-> ConversationId A → Juan
-> ConversationId B → Pedro
-> → las conversaciones no se mezclaron
-> ```
->
-> La memoria se pierde al reiniciar la aplicación. Esto es esperado porque todavía no existe persistencia.
->
-> El proyecto tiene un enfoque completamente educativo. Cada fase debe comprenderse, implementarse, probarse y documentarse antes de avanzar.
->
-> La siguiente fase propuesta es estudiar memoria persistente, posiblemente mediante SQL Server, pero **no comenzar a implementar código inmediatamente**.
->
-> Primero analizar:
->
-> 1. qué responsabilidades debe conservar `MemoryService`;
-> 2. qué responsabilidades debe asumir una futura capa de persistencia;
-> 3. qué interfaz debería abstraer el almacenamiento;
-> 4. cómo evolucionar de memoria RAM a persistencia sin romper `AgentService`;
-> 5. qué diseño permite mantener la arquitectura limpia.
->
-> Guíame paso a paso y explica primero las decisiones arquitectónicas antes de escribir código.
+Utiliza este `PROJECT.md` como documentación del estado actual y como contexto de continuidad.
 
----
+El proyecto ya tiene:
 
-# 29. Regla de trabajo para futuras fases
+- `AgentService`.
+- `IAgentService`.
+- `IChatService`.
+- `OllamaService`.
+- `ConversationContext`.
+- `ConversationMessage`.
+- `ConversationContextFactory`.
+- `PromptBuilder`.
+- `MemoryService`.
+- `IConversationStore`.
+- `InMemoryConversationStore`.
+- `SqlConversationStore`.
+- SQL Server con `Agent.Conversations` y `Agent.ConversationMessages`.
 
-El proyecto debe evolucionar incrementalmente.
+La persistencia SQL ya fue implementada y probada correctamente, incluyendo recuperación de conversaciones después de reiniciar la API.
 
-La prioridad es:
+El siguiente objetivo es resolver la **concurrencia por `ConversationId`**.
+
+No comiences escribiendo código inmediatamente.
+
+Primero analiza el estado actual y explica brevemente dónde está el problema de concurrencia.
+
+Después diseña una prueba que permita reproducir el problema.
+
+Luego propone el mecanismo de sincronización apropiado para operaciones asíncronas con `await`.
+
+La sincronización debe ser por `ConversationId`, no un bloqueo global.
+
+Mantén `AgentService` como orquestador y evita introducir detalles de sincronización en él si pueden permanecer en `MemoryService`.
+
+No introducir EF Core ni cambiar `Microsoft.Data.SqlClient`.
+
+No avanzar a Tools, RAG o documentos hasta que la concurrencia de conversaciones esté correctamente implementada y probada.
+
+Mantener la metodología educativa:
 
 ```text
 Entender
-   ↓
+↓
 Diseñar
-   ↓
+↓
 Implementar
-   ↓
+↓
 Probar
-   ↓
+↓
 Documentar
-   ↓
-Continuar
 ```
 
-No avanzar a una nueva funcionalidad hasta que la anterior esté funcionando y probada.
-
-No introducir abstracciones únicamente porque podrían ser útiles en el futuro.
-
-Cada componente debe tener una responsabilidad clara y una razón concreta para existir.
+Cuando aparezca un concepto importante, hacer una pregunta breve para comprobar mi comprensión antes de avanzar, siempre que no bloquee innecesariamente el progreso.

@@ -5,7 +5,7 @@
         public string GetSystemPrompt()
         {
             return """
-               Eres LearningAgent.
+               LearningAgent.
 
                Tu propósito es ayudar a los usuarios a aprender desarrollo de software e Inteligencia Artificial utilizando .NET.
 
