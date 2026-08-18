@@ -23,27 +23,25 @@ namespace LearningAgent.Api.Services.Agent
 
         public async Task<string> ProcessAsync(Guid conversationId, string message)
         {
-            var context = _memoryService.GetOrCreate(conversationId);
-
-            context.Messages.Add(new ConversationMessage
+            return await _memoryService.ExecuteAsync(conversationId, async () =>
             {
-                Role = "user",
-                Content = message
+                var context = _memoryService.GetOrCreate(conversationId);
+                context.Messages.Add(new ConversationMessage
+                {
+                    Role = "user",
+                    Content = message
+                });
+                var messages = _promptBuilder.Build(context);
+                //await Task.Delay(5000);
+                var response = await _chatService.GetResponseAsync(messages);
+                context.Messages.Add(new ConversationMessage
+                {
+                    Role = "assistant",
+                    Content = response
+                });
+                _memoryService.Save(context);
+                return response;
             });
-
-            var messages = _promptBuilder.Build(context);
-
-            var response = await _chatService.GetResponseAsync(messages);
-
-            context.Messages.Add(new ConversationMessage
-            {
-                Role = "assistant",
-                Content = response
-            });
-
-            _memoryService.Save(context);
-
-            return response;
         }
     }
 }

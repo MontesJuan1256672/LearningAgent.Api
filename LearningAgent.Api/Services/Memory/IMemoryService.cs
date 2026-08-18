@@ -7,4 +7,6 @@ public interface IMemoryService
     ConversationContext GetOrCreate(Guid conversationId);
 
     void Save(ConversationContext context);
+
+    Task<T> ExecuteAsync<T>(Guid conversationId, Func<Task<T>> operation);
 }
