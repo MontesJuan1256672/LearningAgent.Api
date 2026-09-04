@@ -18,7 +18,7 @@ public class PromptBuilder : IPromptBuilder
        {
            new()
            {
-               Role = "System",
+               Role = "system",
                Content = contex.SystemPrompt
            }
        };
@@ -27,9 +27,5 @@ public class PromptBuilder : IPromptBuilder
         return messages;
     }
 }
-
-
-
-
 
 

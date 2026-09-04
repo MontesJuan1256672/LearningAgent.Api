@@ -1,6 +1,12 @@
 @LearningAgent.Api_HostAddress = http://localhost:5072
 
-GET {{LearningAgent.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Conversation B
+POST {{LearningAgent.Api_HostAddress}}/api/Chat
+Content-Type: application/json
+
+{
+  "conversationId": "519fdbad-67b0-4a1e-858a-dc6d280b99f7",
+  "message": "Hola, responde brevemente"
+} 
 
 ###

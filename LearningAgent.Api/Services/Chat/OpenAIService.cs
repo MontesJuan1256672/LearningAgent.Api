@@ -16,7 +16,7 @@ namespace LearningAgent.Api.Services.Chat
                 apiKey: options.Value.ApiKey);
         }
 
-        public async Task<string> GetResponseAsync(IEnumerable<ConversationMessage> messages)
+        public async Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages)
         {
             var openAiMessages = new List<OpenAI.Chat.ChatMessage>();
 
@@ -37,7 +37,10 @@ namespace LearningAgent.Api.Services.Chat
             }
 
             ChatCompletion completion = await _chatClient.CompleteChatAsync(openAiMessages);
-            return completion.Content[0].Text;
+            return new ChatResult
+            {
+                Content = completion?.Refusal ?? "No se recibió respuesta"
+            };
         }
     }
 }

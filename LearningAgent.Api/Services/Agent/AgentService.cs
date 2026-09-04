@@ -32,15 +32,17 @@ namespace LearningAgent.Api.Services.Agent
                     Content = message
                 });
                 var messages = _promptBuilder.Build(context);
-                //await Task.Delay(5000);
-                var response = await _chatService.GetResponseAsync(messages);
+
+                var chatResult = await _chatService.GetResponseAsync(messages);
                 context.Messages.Add(new ConversationMessage
                 {
                     Role = "assistant",
-                    Content = response
+                    Content = chatResult.Content
                 });
+
                 _memoryService.Save(context);
-                return response;
+
+                return chatResult.Content;
             });
         }
     }

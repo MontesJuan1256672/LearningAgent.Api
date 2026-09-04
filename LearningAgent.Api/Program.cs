@@ -4,6 +4,8 @@ using LearningAgent.Api.Services.Chat;
 using LearningAgent.Api.Services.Conversation;
 using LearningAgent.Api.Services.Memory;
 using LearningAgent.Api.Services.Prompts;
+using LearningAgent.Api.Services.Tool;
+using LearningAgent.Api.Services.Tools;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,8 @@ builder.Services.AddScoped<OpenAIService>();
 builder.Services.AddScoped<IChatService, OllamaService>();
 builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IPromptBuilder, PromptBuilder>();
+builder.Services.AddScoped<ITool, CalculatorTool>();
+builder.Services.AddScoped<IToolRegistry, ToolRegistry>();
 
 builder.Services.AddSingleton<ISystemPromptProvider, SystemPromptProvider>();
 builder.Services.AddSingleton<IConversationContextFactory, ConversationContextFactory>();

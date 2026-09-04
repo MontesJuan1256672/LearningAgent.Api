@@ -24,7 +24,7 @@ namespace LearningAgent.Api.Services.Chat
             _httpClient.BaseAddress = new Uri(_options.BaseUrl);
         }
 
-        public async Task<string> GetResponseAsync(IEnumerable<ConversationMessage> messages)
+        public async Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages)
         {
             var request = new OllamaChatRequest
             {
@@ -37,22 +37,38 @@ namespace LearningAgent.Api.Services.Chat
                         Content = m.Content
                     })
                     .ToList()
-
             };
 
             string json = JsonSerializer.Serialize(request);
+            Console.WriteLine($"Mensajes enviados: {request.Messages.Count}");
+            Console.WriteLine($"Tamaño JSON: {Encoding.UTF8.GetByteCount(json)} bytes");
 
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             HttpResponseMessage response = await _httpClient.PostAsync("/api/chat", content);
+
+            stopwatch.Stop();
+
+            Console.WriteLine($"Tiempo HTTP: {stopwatch.ElapsedMilliseconds} ms");
 
             response.EnsureSuccessStatusCode();
 
             string responseJson = await response.Content.ReadAsStringAsync();
 
             var ollamaResponse = JsonSerializer.Deserialize<OllamaChatResponse>(responseJson, JsonOptions);
-               
-            return ollamaResponse?.Message.Content ?? "No se recibió respueta.";
+
+            Console.WriteLine($"Ollama Total: {ollamaResponse?.TotalDuration / 1_000_000_000.0:F2} s");
+            Console.WriteLine($"Ollama Load: {ollamaResponse?.LoadDuration / 1_000_000_000.0:F2} s");
+            Console.WriteLine($"Ollama Prompt Eval: {ollamaResponse?.PromptEvalDuration / 1_000_000_000.0:F2} s");
+            Console.WriteLine($"Ollama Eval: {ollamaResponse?.EvalDuration / 1_000_000_000.0:F2} s");
+
+            //return ollamaResponse?.Message.Content?? "No se recibió respuesta.";
+            return new ChatResult
+            {
+                Content = ollamaResponse?.Message.Content ?? "No se recibió respuesta"
+            };
         }
     }
 }
