@@ -11,10 +11,15 @@ public class ToolRegistry : IToolRegistry
         _tools = tools;
     }
 
+    public IEnumerable<ITool> GetTools()
+    {
+        return _tools;
+    }
+
     public ITool? GetTool(string name)
     {
         return _tools.FirstOrDefault(
-            tool => tool.Name.Equals(
+            tool => tool.Definition.Name.Equals(
                 name,
                 StringComparison.OrdinalIgnoreCase));
     }

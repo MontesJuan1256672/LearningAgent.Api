@@ -1,10 +1,10 @@
-﻿namespace LearningAgent.Api.Services.Tool
+﻿using LearningAgent.Api.Services.Tools;
+
+namespace LearningAgent.Api.Services.Tool
 {
     public interface ITool
     {
-        string Name { get; }
-
-        string Description { get; }
+        ToolDefinition Definition { get; }
 
         Task<string> ExecuteAsync(string arguments);
     }

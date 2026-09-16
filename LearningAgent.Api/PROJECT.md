@@ -1,195 +1,106 @@
-﻿# PROJECT.md
+﻿# PROJECT.md — LearningAgent.Api
 
+## 1. Propósito del proyecto
 
-# LearningAgent.Api
+`LearningAgent.Api` es un proyecto educativo para aprender, desde cero y de forma incremental, cómo construir un agente de IA en C#/.NET.
 
-> Documento de contexto, documentación técnica y prompt de continuidad para futuras sesiones de desarrollo.
+La prioridad del proyecto no es solamente conseguir que "funcione", sino comprender:
+
+- qué responsabilidad tiene cada componente;
+- cómo se comunican entre sí;
+- por qué se utiliza cada abstracción;
+- cómo evolucionar de un chatbot sencillo hacia un agente;
+- qué problemas aparecen al introducir memoria, persistencia, Tools y RAG;
+- cómo mantener una arquitectura mantenible y extensible.
+
+La evolución general del proyecto es:
+
+```text
+Chatbot
+   ↓
+Memory
+   ↓
+Persistence
+   ↓
+Tools
+   ↓
+RAG
+   ↓
+Agente más autónomo
+```
 
 ---
 
-# 1. Descripción del proyecto
+# 2. Objetivo tecnológico
 
-`LearningAgent.Api` es un proyecto educativo desarrollado para aprender cómo construir un agente conversacional utilizando:
+Tecnologías actuales:
 
 - C#
 - .NET 8
 - ASP.NET Core Web API
-- Ollama
-- Llama 3.2
-- SQL Server / LocalDB
-- Inyección de dependencias
-- Manejo de memoria conversacional
-- Persistencia de conversaciones
-- Control de concurrencia
-
-El objetivo no es únicamente crear un chatbot, sino entender progresivamente la arquitectura interna de un agente de IA.
-
-La aplicación recibe mensajes mediante una API HTTP, construye un contexto conversacional, lo envía a un modelo de lenguaje y devuelve la respuesta generada.
-
----
-
-# 2. Objetivo principal
-
-Construir un agente educativo especializado en:
-
-- Desarrollo de software
-- C#
-- .NET
-- APIs
-- Arquitectura de software
-- Inteligencia Artificial
-
-El agente debe poder:
-
-1. Recibir mensajes.
-2. Mantener conversaciones independientes.
-3. Recordar mensajes anteriores.
-4. Evitar mezclar conversaciones.
-5. Persistir conversaciones.
-6. Manejar solicitudes concurrentes.
-7. Comunicarse con un modelo LLM.
-8. Evolucionar posteriormente hacia herramientas, RAG y comportamiento más autónomo.
-
----
-
-# 3. Stack tecnológico
-
-## Backend
-
-- C#
-- .NET 8
-- ASP.NET Core Web API
-
-## Base de datos
-
+- Swagger
 - SQL Server LocalDB
+- Ollama
+- Modelo `llama3.2`
+- `HttpClientFactory`
+- `System.Text.Json`
+- `Microsoft.Data.SqlClient`
 
-Cadena de conexión actual:
-
-```json
-"ConnectionStrings": {
-  "LearningAgentDb": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=LearningAgentDb;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;Application Name=LearningAgent.Api"
-}
-````
-
-## Modelo de IA
-
-Actualmente:
-
-* Ollama
-* Modelo: `llama3.2`
-
-Configuración:
-
-```json
-"Ollama": {
-  "BaseUrl": "http://127.0.0.1:11434",
-  "Model": "llama3.2"
-}
-```
-
-También existe configuración previa para OpenAI, pero actualmente no se está utilizando debido a problemas de cuota.
-
----
-
-# 4. Estado general del proyecto
-
-## Avance estimado: 45%
-
-El porcentaje es aproximado.
-
-### Completado
-
-* [x] API básica
-* [x] Endpoint de chat
-* [x] Comunicación con un LLM
-* [x] Integración inicial con OpenAI
-* [x] Cambio a Ollama local
-* [x] Prompt del sistema
-* [x] Contexto conversacional
-* [x] Memoria en RAM
-* [x] Aislamiento entre conversaciones
-* [x] Persistencia básica en SQL Server
-* [x] Sincronización de solicitudes por conversación
-* [x] Pruebas de concurrencia
-* [x] Diagnóstico de timeout del cliente `.http`
-* [x] Pruebas de rendimiento contra Ollama
-* [x] Medición del tiempo de respuesta
-
-### Pendiente
-
-* [ ] Restaurar `OllamaService` después de las pruebas temporales
-* [ ] Optimizar el historial conversacional
-* [ ] Definir una estrategia de límite de contexto
-* [ ] Mejorar el manejo de errores y timeouts
-* [ ] Persistencia completa y recuperación de conversaciones
-* [ ] Resumen automático de conversaciones largas
-* [ ] Gestión de contexto por tokens
-* [ ] Herramientas para el agente
-* [ ] RAG
-* [ ] Embeddings
-* [ ] Base vectorial
-* [ ] Streaming de respuestas
-* [ ] Pruebas unitarias
-* [ ] Pruebas de integración
-* [ ] Pruebas de carga
-* [ ] Observabilidad y métricas
-
----
-
-# 5. Arquitectura actual
-
-La aplicación sigue una separación por responsabilidades:
+Ollama:
 
 ```text
-Cliente
-   │
-   │ HTTP POST
-   ▼
+Base URL: http://127.0.0.1:11434
+Modelo: llama3.2
+Endpoint utilizado: /api/chat
+```
+
+OpenAI existe todavía en el proyecto como implementación alternativa (`OpenAIService` y `OpenAIOptions`), pero para el aprendizaje actual el proveedor activo es Ollama.
+
+La razón principal es mantener el proyecto educativo sin depender de una API de pago.
+
+---
+
+# 3. Arquitectura actual
+
+El flujo principal de conversación es:
+
+```text
 ChatController
-   │
-   ▼
-IAgentService
-   │
-   ▼
+      ↓
 AgentService
-   │
-   ├── IMemoryService
-   │
-   ├── IPromptBuilder
-   │
-   └── IChatService
-           │
-           ▼
-       OllamaService
-           │
-           ▼
-     Ollama API Local
-           │
-           ▼
-       llama3.2
+      ↓
+MemoryService
+      ↓
+PromptBuilder
+      ↓
+IChatService
+      ↓
+OllamaService
+      ↓
+Ollama
+      ↓
+llama3.2
 ```
 
-Para la persistencia:
+La persistencia sigue esta ruta:
 
 ```text
 AgentService
-      │
-      ▼
+      ↓
 IMemoryService
-      │
-      ▼
+      ↓
 IConversationStore
-      │
-      ▼
+      ↓
+SqlConversationStore
+      ↓
 SQL Server / LocalDB
 ```
 
+La arquitectura utiliza DI de ASP.NET Core para desacoplar las responsabilidades.
+
 ---
 
-# 6. Estructura conceptual del proyecto
-
-Las partes principales incluyen:
+# 4. Estructura actual del proyecto
 
 ```text
 LearningAgent.Api
@@ -199,6 +110,13 @@ LearningAgent.Api
 │
 ├── Contracts
 │   └── Ollama
+│       ├── OllamaChatRequest.cs
+│       ├── OllamaChatResponse.cs
+│       ├── OllamaMessage.cs
+│       ├── OllamaTool.cs
+│       ├── OllamaToolCall.cs
+│       ├── OllamaToolCallFunction.cs
+│       └── OllamaToolFunction.cs
 │
 ├── Dtos
 │   ├── ChatRequest.cs
@@ -206,6 +124,7 @@ LearningAgent.Api
 │
 ├── Models
 │   ├── Chat
+│   │   ├── ChatResult.cs
 │   │   └── ConversationMessage.cs
 │   │
 │   └── Conversation
@@ -227,18 +146,29 @@ LearningAgent.Api
 │   │   └── OpenAIService.cs
 │   │
 │   ├── Conversation
+│   │   ├── ConversationContextFactory.cs
+│   │   ├── IConversationContextFactory.cs
 │   │   ├── IConversationStore.cs
+│   │   ├── InMemoryConversationStore.cs
 │   │   └── SqlConversationStore.cs
 │   │
 │   ├── Memory
 │   │   ├── IMemoryService.cs
 │   │   └── MemoryService.cs
 │   │
-│   └── Prompts
-│       ├── IPromptBuilder.cs
-│       ├── PromptBuilder.cs
-│       ├── ISystemPromptProvider.cs
-│       └── SystemPromptProvider.cs
+│   ├── Prompts
+│   │   ├── IPromptBuilder.cs
+│   │   ├── PromptBuilder.cs
+│   │   ├── ISystemPromptProvider.cs
+│   │   └── SystemPromptProvider.cs
+│   │
+│   └── Tools
+│       ├── CalculatorTool.cs
+│       ├── ITool.cs
+│       ├── IToolRegistry.cs
+│       ├── ToolCall.cs
+│       ├── ToolDefinition.cs
+│       └── ToolRegistry.cs
 │
 ├── appsettings.json
 ├── launchSettings.json
@@ -248,1489 +178,900 @@ LearningAgent.Api
 
 ---
 
-# 7. Endpoint principal
+# 5. Etapas ya completadas
 
-## POST
+## 5.1 Chat básico
+
+Se implementó el flujo inicial:
 
 ```text
-/api/Chat
+HTTP Request
+   ↓
+ChatController
+   ↓
+IAgentService
+   ↓
+IChatService
+   ↓
+Ollama
 ```
 
-El controlador actual recibe un `ChatRequest`.
+Se creó una abstracción `IChatService` para evitar que `AgentService` dependa directamente del proveedor de IA.
 
-Conceptualmente:
+---
 
-```csharp
-[HttpPost]
-public async Task<ActionResult<ChatResponse>> Chat(ChatRequest request)
-{
-    string response = await _agentService.ProcessAsync(
-        request.ConversationId,
-        request.Message);
+## 5.2 System Prompt
 
-    return Ok(new ChatResponse
-    {
-        Response = response
-    });
-}
+Se separó el System Prompt mediante:
+
+```text
+ISystemPromptProvider
+SystemPromptProvider
+```
+
+El objetivo es evitar que las instrucciones del agente estén mezcladas con la lógica de conversación.
+
+System Prompt actual:
+
+```text
+LearningAgent.
+
+Tu propósito es ayudar a los usuarios a aprender desarrollo de software e Inteligencia Artificial utilizando .NET.
+
+Siempre responde de forma clara, técnica y estructurada.
+
+Si existen varias alternativas, explica las ventajas y desventajas de cada una antes de recomendar una solución.
+
+Cuando expliques código, prioriza el aprendizaje antes que simplemente proporcionar la respuesta.
 ```
 
 ---
 
-# 8. Flujo de procesamiento de un mensaje
+## 5.3 Memoria conversacional
 
-Cuando llega una solicitud:
-
-```text
-POST /api/Chat
-```
-
-ocurre el siguiente flujo:
+Se implementó memoria mediante:
 
 ```text
-1. ChatController recibe la solicitud
-        │
-        ▼
-2. AgentService.ProcessAsync()
-        │
-        ▼
-3. MemoryService obtiene el lock de la conversación
-        │
-        ▼
-4. Se obtiene o crea ConversationContext
-        │
-        ▼
-5. Se agrega el mensaje del usuario
-        │
-        ▼
-6. PromptBuilder construye el contexto
-        │
-        ▼
-7. OllamaService llama a Ollama
-        │
-        ▼
-8. Ollama / llama3.2 genera la respuesta
-        │
-        ▼
-9. Se agrega la respuesta del asistente
-        │
-        ▼
-10. Se guarda el contexto
-        │
-        ▼
-11. Se libera el lock
-        │
-        ▼
-12. Se devuelve la respuesta HTTP
+ConversationContext
+ConversationMessage
+MemoryService
 ```
 
----
-
-# 9. AgentService
-
-El servicio principal del agente es responsable de coordinar:
-
-* Memoria
-* Contexto
-* Prompt
-* LLM
-* Respuesta
-
-La lógica conceptual actual es:
-
-```csharp
-public async Task<string> ProcessAsync(
-    Guid conversationId,
-    string message)
-{
-    return await _memoryService.ExecuteAsync(
-        conversationId,
-        async () =>
-        {
-            var context =
-                _memoryService.GetOrCreate(conversationId);
-
-            context.Messages.Add(
-                new ConversationMessage
-                {
-                    Role = "user",
-                    Content = message
-                });
-
-            var messages =
-                _promptBuilder.Build(context);
-
-            var response =
-                await _chatService.GetResponseAsync(messages);
-
-            context.Messages.Add(
-                new ConversationMessage
-                {
-                    Role = "assistant",
-                    Content = response
-                });
-
-            _memoryService.Save(context);
-
-            return response;
-        });
-}
-```
-
----
-
-# 10. Memoria conversacional
-
-La memoria se identifica mediante:
-
-```text
-ConversationId
-```
-
-Cada conversación tiene su propio contexto.
-
-Ejemplo:
-
-```text
-Conversation A
-ID: 1111
-Usuario: Me llamo Juan
-```
-
-Después:
-
-```text
-Conversation A
-Usuario: ¿Cómo me llamo?
-```
-
-El agente puede recordar:
-
-```text
-Juan
-```
-
-Pero una conversación diferente:
-
-```text
-Conversation B
-ID: 2222
-Usuario: Me llamo Pedro
-```
-
-mantiene un contexto independiente.
-
----
-
-# 11. Pruebas realizadas sobre memoria
-
-## Prueba A — Persistencia dentro de una conversación
-
-Primera solicitud:
-
-```text
-Me llamo Juan
-```
-
-Segunda solicitud con el mismo `ConversationId`:
-
-```text
-¿Cómo me llamo?
-```
-
-Resultado:
-
-```text
-Juan
-```
-
-Resultado esperado confirmado.
-
----
-
-## Prueba B — Aislamiento entre conversaciones
-
-Conversación A:
-
-```text
-Me llamo Juan
-```
-
-Conversación B:
-
-```text
-Me llamo Pedro
-```
-
-Cada conversación mantuvo su propio contexto.
-
-No se mezclaron los mensajes.
-
-Resultado esperado confirmado.
-
----
-
-# 12. Concurrencia
-
-## Problema
-
-Dos solicitudes HTTP pueden llegar al mismo tiempo.
-
-Si ambas pertenecen a la misma conversación:
-
-```text
-ConversationId = AAA
-```
-
-podrían modificar simultáneamente:
-
-```text
-context.Messages
-```
-
-Esto podría provocar condiciones de carrera.
-
-Ejemplo:
-
-```text
-Request 1
-    │
-    ├── Obtiene contexto
-    │
-    ├── Agrega mensaje
-    │
-    └── Espera Ollama
-
-
-Request 2
-    │
-    ├── Obtiene el mismo contexto
-    │
-    ├── Agrega mensaje
-    │
-    └── Modifica el estado antes de que termine Request 1
-```
-
----
-
-# 13. Solución de concurrencia
-
-`MemoryService` utiliza un mecanismo de bloqueo por conversación.
+Una conversación tiene un `ConversationId` y una colección de mensajes.
 
 Conceptualmente:
 
 ```text
+ConversationContext
+ ├── ConversationId
+ ├── SystemPrompt
+ └── Messages
+      ├── user
+      ├── assistant
+      ├── user
+      └── assistant
+```
+
+---
+
+## 5.4 Persistencia
+
+Se agregó persistencia mediante:
+
+```text
+IConversationStore
+InMemoryConversationStore
+SqlConversationStore
+```
+
+La aplicación puede conservar las conversaciones en SQL Server/LocalDB.
+
+La memoria y la persistencia se mantienen separadas para evitar que `AgentService` conozca detalles específicos de SQL Server.
+
+---
+
+## 5.5 Concurrencia
+
+`MemoryService` utiliza:
+
+```csharp
 ConcurrentDictionary<Guid, SemaphoreSlim>
 ```
 
-Cada `ConversationId` tiene su propio `SemaphoreSlim`.
+para obtener un lock por `ConversationId`.
 
-Esto permite:
-
-```text
-Conversation A
-     │
-     └── Lock A
-```
-
-y:
+Conceptualmente:
 
 ```text
-Conversation B
-     │
-     └── Lock B
+Conversation A → Lock A
+Conversation B → Lock B
+Conversation C → Lock C
 ```
 
-Por lo tanto, dos conversaciones diferentes no tienen que bloquearse mutuamente.
+Esto permite evitar que dos solicitudes concurrentes modifiquen simultáneamente el mismo contexto de conversación.
+
+Las pruebas de aislamiento y concurrencia fueron realizadas correctamente.
 
 ---
 
-# 14. Comportamiento esperado del lock
+# 6. Estado actual de Tools
 
-## Mismo ConversationId
+La etapa de Tools ya tiene implementado y probado el ciclo principal de Tool Calling.
 
-```text
-Request 1
-ConversationId = AAA
-        │
-        ▼
-Acquired lock
-        │
-        ▼
-Procesando
-        │
-        ▼
-Ollama
-        │
-        ▼
-Released lock
-```
+## 6.1 Concepto
 
-Mientras tanto:
+Una Tool es una capacidad que el modelo puede solicitar, pero que realmente ejecuta nuestra aplicación.
+
+El modelo no ejecuta C# directamente.
+
+El flujo es:
 
 ```text
-Request 2
-ConversationId = AAA
-        │
-        ▼
-Waiting for lock
-        │
-        ▼
-        espera
-        │
-        ▼
-Acquired lock
+Usuario
+   ↓
+LLM
+   ↓
+Tool Call
+   ↓
+LearningAgent.Api
+   ↓
+Tool en C#
+   ↓
+Tool Result
+   ↓
+LLM
+   ↓
+Respuesta final
 ```
 
-Resultado:
+Esta separación es importante:
 
-Las solicitudes de la misma conversación se procesan secuencialmente.
+```text
+LLM = decide qué necesita hacer
+Aplicación = decide cómo y si puede ejecutarlo
+Tool = ejecuta la operación permitida
+```
 
 ---
 
-## Diferente ConversationId
+# 7. Infraestructura de Tools implementada
 
-```text
-Request 1
-ConversationId = AAA
-        │
-        ▼
-Lock A
-```
+## 7.1 ITool
 
-y simultáneamente:
+Actualmente:
 
-```text
-Request 2
-ConversationId = BBB
-        │
-        ▼
-Lock B
-```
-
-Ambas pueden avanzar independientemente.
-
----
-
-# 15. Prueba de concurrencia realizada
-
-Se realizaron solicitudes desde:
-
-1. Archivo `LearningAgent.Api.http`
-2. Swagger
-
-Se utilizó el mismo:
-
-```text
-ConversationId
-```
-
-El log mostró:
-
-```text
-[519f...] Waiting for lock
-[519f...] Acquired lock
-
-[519f...] Waiting for lock
-```
-
-La segunda solicitud llegó mientras la primera todavía estaba ejecutándose.
-
-Después:
-
-```text
-[519f...] Released lock
-```
-
-Entonces:
-
-```text
-[519f...] Acquired lock
-```
-
-Esto confirmó que:
-
-> El mecanismo de concurrencia por conversación está funcionando correctamente.
-
----
-
-# 16. LearningAgent.Api.http
-
-Configuración utilizada:
-
-```http
-@LearningAgent.Api_HostAddress = http://localhost:5072
-
-### Conversation
-POST {{LearningAgent.Api_HostAddress}}/api/Chat
-Content-Type: application/json
-
+```csharp
+public interface ITool
 {
-  "conversationId": "GUID-AQUI",
-  "message": "Hola"
+    ToolDefinition Definition { get; }
+    Task<string> ExecuteAsync(string arguments);
 }
-
-###
 ```
 
-La API escucha actualmente en:
+La interfaz define dos responsabilidades:
 
-```text
-https://localhost:7125
-http://localhost:5072
-```
+1. describir la Tool;
+2. ejecutar la Tool.
 
 ---
 
-# 17. Problema de timeout del archivo .http
+## 7.2 ToolDefinition
 
-Inicialmente el archivo `.http` mostraba:
+Actualmente:
 
-```text
-The request was cancelled due to the configured timeout of 20 second(s) elapsing.
+```csharp
+public class ToolDefinition
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public JsonElement Parameters { get; set; }
+}
 ```
 
-Se investigaron inicialmente:
+`Parameters` contiene un JSON Schema que describe los argumentos que la Tool acepta.
 
-* Puertos
-* `launchSettings.json`
-* `appsettings.json`
-* HTTPS
-* Swagger
-* Ollama
-* `HttpClient`
-* Locks
-
-Finalmente se identificó que Visual Studio tenía configurado un timeout de:
+Esto permite que Ollama conozca:
 
 ```text
-20 segundos
+nombre
+descripción
+parámetros
 ```
 
-El problema era que algunas respuestas de Ollama tardaban más que ese tiempo.
+sin conocer la implementación C#.
 
 ---
 
-# 18. Solución del timeout en Visual Studio 2026
+## 7.3 CalculatorTool
 
-La configuración correcta se encuentra en:
-
-```text
-Herramientas
-└── Opciones
-    └── Editor de texto / Idiomas
-        └── REST
-            └── Avanzado
-                └── Respuesta
-                    └── Tiempo de espera de solicitud
-```
-
-Se modificó temporalmente a:
+Existe actualmente:
 
 ```text
-120 segundos
+CalculatorTool
 ```
 
-Después de este cambio, solicitudes que tardaban aproximadamente 100 segundos pudieron completarse correctamente.
+y su definición declara:
+
+```text
+Name:
+calculator
+
+Description:
+Realiza operaciones matemáticas simples.
+```
+
+El parámetro definido es:
+
+```text
+expression
+```
+
+Actualmente la Tool todavía no realiza el cálculo matemático real.
+
+La implementación temporal devuelve el argumento recibido, por ejemplo:
+
+```text
+CalculatorTool recibió: {"expression":"10+20"}
+```
+
+Esto fue intencional para validar primero la arquitectura de Tool Calling.
 
 ---
 
-# 19. Diagnóstico de Ollama
+## 7.4 ToolRegistry
 
-Se realizaron pruebas directas desde PowerShell.
-
-Consulta de modelos:
-
-```powershell
-curl.exe http://localhost:11434/api/tags
-```
-
-Resultado:
+Existe:
 
 ```text
-llama3.2:latest
+IToolRegistry
+ToolRegistry
 ```
 
-También se realizó una petición directa:
+El Registry recibe:
 
-```powershell
-Invoke-RestMethod `
-    -Uri "http://localhost:11434/api/chat" `
-    -Method Post `
-    -ContentType "application/json" `
-    -Body $body
+```csharp
+IEnumerable<ITool>
 ```
 
-Ollama respondió correctamente.
+mediante Dependency Injection.
 
-Esto confirmó que:
+Permite:
 
-```text
-Ollama API local: funcionando
-Modelo llama3.2: disponible
-Puerto 11434: funcionando
+```csharp
+GetTools()
 ```
+
+para obtener todas las Tools disponibles.
+
+También:
+
+```csharp
+GetTool(string name)
+```
+
+para localizar una Tool por nombre, ignorando mayúsculas/minúsculas.
+
+Esto permite agregar nuevas Tools sin modificar `AgentService` para cada Tool.
 
 ---
 
-# 20. Prueba controlada de OllamaService
+# 8. Integración con Ollama
 
-Para eliminar temporalmente la influencia de:
+Se agregaron contratos específicos para Tool Calling:
 
-* Historial
-* Memoria
-* System Prompt
-* PromptBuilder
+```text
+OllamaTool.cs
+OllamaToolFunction.cs
+OllamaToolCall.cs
+OllamaToolCallFunction.cs
+```
 
-se modificó temporalmente `OllamaService`.
+`OllamaChatRequest` ahora incluye:
 
-En lugar de utilizar los mensajes reales, se envió siempre:
+```csharp
+public List<OllamaTool> Tools { get; set; } = [];
+```
+
+`OllamaMessage` ahora soporta:
+
+```csharp
+Role
+Content
+ToolCalls
+ToolName
+```
+
+Esto permite representar tanto mensajes normales como mensajes relacionados con Tools.
+
+---
+
+# 9. Resultado de la prueba real de Tool Calling
+
+Se probó la solicitud:
+
+```text
+¿Cuánto es 10 + 20?
+```
+
+La primera llamada a Ollama devolvió un `tool_call` equivalente a:
 
 ```json
 {
-  "model": "llama3.2",
-  "stream": false,
-  "messages": [
-    {
-      "role": "user",
-      "content": "Hola, responde brevemente"
-    }
-  ]
+  "name": "calculator",
+  "arguments": {
+    "expression": "10+20"
+  }
 }
 ```
 
-Esto permitió medir directamente el comportamiento de Ollama.
+El modelo no produjo contenido final en esa primera respuesta:
+
+```text
+content = ""
+```
+
+Esto es correcto.
+
+Significa que el modelo decidió solicitar una Tool.
 
 ---
 
-# 21. Medición de rendimiento
+# 10. Ejecución del Tool
 
-Se agregó temporalmente:
+`AgentService` recibió el `ToolCall`.
+
+Después utilizó:
 
 ```csharp
-var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-HttpResponseMessage response =
-    await _httpClient.PostAsync("/api/chat", content);
-
-stopwatch.Stop();
-
-Console.WriteLine(
-    $"Tiempo HTTP: {stopwatch.ElapsedMilliseconds} ms");
+_toolRegistry.GetTool(toolCall.Name)
 ```
 
-Esto permitió comparar:
+para localizar:
 
 ```text
-Tiempo medido por .NET
+calculator
 ```
 
-contra:
+Posteriormente ejecutó:
+
+```csharp
+tool.ExecuteAsync(toolCall.Arguments)
+```
+
+El resultado fue agregado al contexto como mensaje de Tool.
+
+---
+
+# 11. Segunda llamada a Ollama
+
+Después de ejecutar la Tool, `AgentService` volvió a construir el contexto y llamó nuevamente a:
+
+```csharp
+_chatService.GetResponseAsync(messages)
+```
+
+La segunda llamada recibió 4 mensajes.
+
+El flujo conceptual fue:
 
 ```text
-total_duration
+system
+user
+assistant + tool_call
+tool + tool_result
+```
+
+Ollama entonces generó la respuesta final:
+
+```text
+Según el resultado del calculador, la respuesta es:
+
+10 + 20 = 30
+```
+
+Por lo tanto, el ciclo completo de Tool Calling ya fue validado.
+
+---
+
+# 12. Estado de los seis objetivos principales de Tools
+
+```text
+1. Definición de Tools para Ollama
+   ✅ COMPLETADO
+
+2. Recepción de tool_calls
+   ✅ COMPLETADO
+
+3. Ejecución desde AgentService
+   ✅ COMPLETADO
+
+4. Devolución del resultado al modelo
+   ✅ COMPLETADO
+
+5. Segunda llamada al modelo
+   ✅ COMPLETADO
+
+6. Respuesta final
+   ✅ COMPLETADO
+```
+
+La infraestructura básica funciona.
+
+---
+
+# 13. Siguiente objetivo inmediato
+
+El siguiente trabajo es terminar la primera Tool real:
+
+```text
+CalculatorTool
+```
+
+Actualmente solamente recibe y devuelve los argumentos.
+
+Debe evolucionar para que realmente pueda procesar una expresión matemática.
+
+Ejemplo conceptual:
+
+```text
+Usuario:
+¿Cuánto es 10 + 20?
+
+LLM:
+calculator
+{
+    "expression": "10+20"
+}
+
+CalculatorTool:
+30
+
+LLM:
+10 + 20 = 30
+```
+
+La implementación debe mantenerse sencilla y segura.
+
+No se debe permitir que la calculadora se convierta en una vía para ejecutar código arbitrario.
+
+No utilizar:
+
+```text
+eval
+compilación dinámica
+ejecución de C#
+procesos del sistema
+```
+
+para resolver las expresiones.
+
+La implementación puede comenzar soportando un conjunto limitado y explícito de operaciones matemáticas.
+
+---
+
+# 14. Después de CalculatorTool
+
+Una vez que `CalculatorTool` sea realmente funcional, se deben revisar y fortalecer las siguientes partes de Tools:
+
+### A. Validación de argumentos
+
+Validar que los argumentos recibidos tengan el formato esperado.
+
+Por ejemplo:
+
+```json
+{
+    "expression": "10+20"
+}
+```
+
+y manejar correctamente argumentos inválidos.
+
+---
+
+### B. Manejo de errores
+
+Una Tool no debe provocar que toda la conversación falle ante una entrada inválida.
+
+Ejemplo:
+
+```text
+calculator
+→ expresión inválida
+→ Tool devuelve error controlado
+→ LLM recibe el resultado
+→ LLM informa al usuario
+```
+
+---
+
+### C. Seguridad
+
+El agente nunca debe ejecutar automáticamente operaciones peligrosas.
+
+No permitir como consecuencia de un Tool:
+
+```text
+ejecución arbitraria de comandos
+ejecución arbitraria de C#
+eliminación arbitraria de archivos
+SQL arbitrario
+acciones destructivas sin autorización
+```
+
+Las Tools deben representar capacidades explícitas y controladas.
+
+---
+
+### D. Registro de Tool Calls
+
+Posteriormente se puede mejorar el logging para conocer:
+
+```text
+Tool solicitada
+Argumentos
+Resultado
+Duración
+Error, si ocurrió
+```
+
+Esto será útil para depuración y observabilidad.
+
+---
+
+### E. Persistencia de Tool Calls
+
+Actualmente `ConversationMessage` ya contempla:
+
+```csharp
+ToolName
+ToolCalls
+```
+
+pero se debe revisar `SqlConversationStore`.
+
+Es posible que la persistencia SQL actual solamente almacene:
+
+```text
+Role
+Content
+```
+
+Si es así, habrá que decidir cómo persistir correctamente:
+
+```text
+assistant + tool_calls
+tool + tool_name + result
+```
+
+Esto debe hacerse después de que el ciclo básico de Tools esté completamente estable.
+
+No debe introducirse complejidad innecesaria antes de terminar la calculadora.
+
+---
+
+# 15. Rendimiento de Ollama
+
+Existe un problema conocido de rendimiento.
+
+Las pruebas han mostrado tiempos elevados en Ollama, especialmente en:
+
+```text
 load_duration
 prompt_eval_duration
 eval_duration
 ```
 
-devueltos por Ollama.
+En una prueba reciente:
+
+```text
+Primera llamada:
+≈ 18.6 segundos
+
+Segunda llamada:
+≈ 4.6 segundos
+```
+
+La primera llamada también tuvo un costo importante de carga del modelo y evaluación del prompt.
+
+Esto está documentado pero:
+
+**NO debe bloquear el desarrollo de Tools.**
+
+La optimización de rendimiento queda pendiente para una etapa posterior.
+
+También existe el antecedente de un timeout de `HttpClient` de 100 segundos durante pruebas anteriores.
+
+No rediseñar la arquitectura por este problema.
 
 ---
 
-# 22. Resultado de la primera solicitud
+# 16. Estado actual de DI
 
-La primera solicitud tardó aproximadamente:
-
-```text
-Tiempo HTTP: ~11.2 segundos
-```
-
-Ollama reportó aproximadamente:
-
-```text
-total_duration:       ~11.0 segundos
-load_duration:         ~8.4 segundos
-prompt_eval_duration:  ~1.35 segundos
-eval_duration:         ~1.29 segundos
-```
-
-Conclusión:
-
-La mayor parte del tiempo correspondió a:
-
-```text
-load_duration
-```
-
-Es decir, la preparación/carga del modelo.
-
----
-
-# 23. Resultado de la segunda solicitud
-
-La segunda solicitud se realizó prácticamente inmediatamente después.
-
-Tiempo aproximado:
-
-```text
-Tiempo HTTP: ~1.8 segundos
-```
-
-Ollama reportó aproximadamente:
-
-```text
-total_duration: ~1.7 segundos
-load_duration:  ~0.49 segundos
-```
-
-Conclusión:
-
-El modelo ya estaba disponible/preparado y la segunda solicitud fue significativamente más rápida.
-
----
-
-# 24. Conclusión sobre el rendimiento
-
-Se confirmó que el tiempo de respuesta puede variar considerablemente dependiendo del estado del modelo.
-
-Conceptualmente:
-
-```text
-Primera solicitud
-       │
-       ▼
-Modelo necesita cargarse/prepararse
-       │
-       ▼
-Respuesta más lenta
-```
-
-Después:
-
-```text
-Segunda solicitud
-       │
-       ▼
-Modelo ya disponible
-       │
-       ▼
-Respuesta más rápida
-```
-
-Esto explica parte de la diferencia observada entre solicitudes.
-
----
-
-# 25. Conclusiones descartadas
-
-Las pruebas realizadas permiten concluir que los siguientes elementos no eran la causa principal del timeout inicial:
-
-* Puerto `5072`
-* Puerto `7125`
-* Swagger
-* HTTPS
-* `launchSettings.json`
-* `appsettings.json`
-* Endpoint `/api/Chat`
-* Comunicación básica de `HttpClient`
-* API local de Ollama
-* `MemoryService`
-* `SemaphoreSlim`
-
-El timeout inicial del archivo `.http` estaba relacionado con el límite de espera de 20 segundos configurado en Visual Studio.
-
----
-
-# 26. Estado actual temporal de OllamaService
-
-IMPORTANTE:
-
-`OllamaService` fue modificado temporalmente para realizar pruebas.
-
-Actualmente ignora el parámetro:
+La infraestructura de Tools se registra mediante DI:
 
 ```csharp
-IEnumerable<ConversationMessage> messages
+builder.Services.AddScoped<ITool, CalculatorTool>();
+builder.Services.AddScoped<IToolRegistry, ToolRegistry>();
 ```
 
-y siempre envía un mensaje fijo:
+La intención es que futuras Tools puedan registrarse de la misma manera:
 
 ```text
-Hola, responde brevemente
+ITool
+ ├── CalculatorTool
+ ├── CurrentTimeTool
+ └── WeatherTool
 ```
 
-Esto significa que temporalmente el agente NO está utilizando:
-
-* El mensaje real enviado por el usuario
-* El System Prompt
-* El historial conversacional
-
-La siguiente etapa debe comenzar restaurando el comportamiento real.
+sin modificar el mecanismo central de descubrimiento.
 
 ---
 
-# 27. Código esperado después de restaurar OllamaService
+# 17. Principios arquitectónicos que deben mantenerse
 
-La implementación debe volver a utilizar los mensajes recibidos:
+Durante las siguientes etapas:
 
-```csharp
-public async Task<string> GetResponseAsync(
-    IEnumerable<ConversationMessage> messages)
-{
-    var request = new OllamaChatRequest
-    {
-        Model = _options.Model,
-        Stream = false,
-        Messages = messages
-            .Select(m => new OllamaMessage
-            {
-                Role = m.Role,
-                Content = m.Content
-            })
-            .ToList()
-    };
+### No reemplazar la arquitectura actual sin necesidad
 
-    string json = JsonSerializer.Serialize(request);
+El proyecto ya tiene una separación funcional entre:
 
-    using var content = new StringContent(
-        json,
-        Encoding.UTF8,
-        "application/json");
-
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-    HttpResponseMessage response =
-        await _httpClient.PostAsync("/api/chat", content);
-
-    stopwatch.Stop();
-
-    Console.WriteLine(
-        $"Tiempo HTTP: {stopwatch.ElapsedMilliseconds} ms");
-
-    response.EnsureSuccessStatusCode();
-
-    string responseJson =
-        await response.Content.ReadAsStringAsync();
-
-    var ollamaResponse =
-        JsonSerializer.Deserialize<OllamaChatResponse>(
-            responseJson,
-            JsonOptions);
-
-    return ollamaResponse?.Message.Content
-        ?? "No se recibió respuesta.";
-}
+```text
+Controller
+Agent
+Memory
+Conversation
+Prompt
+Chat Provider
+Tools
 ```
 
-El `Stopwatch` puede mantenerse temporalmente para continuar analizando el rendimiento.
+Las nuevas capacidades deben integrarse sobre esta arquitectura.
 
 ---
 
-# 28. Problema pendiente: crecimiento del contexto
+### Mantener interfaces donde aporten desacoplamiento
 
-Aunque no fue la causa del timeout del archivo `.http`, existe un problema potencial.
-
-Actualmente la conversación puede crecer así:
+Por ejemplo:
 
 ```text
-System Prompt
-
-Usuario 1
-Asistente 1
-
-Usuario 2
-Asistente 2
-
-Usuario 3
-Asistente 3
-
-Usuario 4
-Asistente 4
-
-...
-```
-
-Si cada respuesta del asistente es larga, cada nueva solicitud enviará más información a Ollama.
-
-Con el tiempo:
-
-```text
-Más mensajes
-      +
-Más tokens
-      +
-Más procesamiento
-      +
-Mayor uso de memoria
-      +
-Mayor latencia
-```
-
-Esto debe solucionarse en una etapa posterior.
-
----
-
-# 29. Posibles estrategias para limitar el contexto
-
-## Opción A — Últimos N mensajes
-
-Ejemplo:
-
-```text
-System Prompt
-+
-Últimos 10 mensajes
-```
-
-Ventaja:
-
-* Fácil de implementar
-* Predecible
-* Reduce rápidamente el tamaño del contexto
-
-Desventaja:
-
-* Se pierde información antigua
-
----
-
-## Opción B — Últimos N pares de conversación
-
-Ejemplo:
-
-```text
-System Prompt
-
-Usuario 8
-Asistente 8
-
-Usuario 9
-Asistente 9
-
-Usuario 10
-Asistente 10
-```
-
-Ventaja:
-
-* Mantiene interacciones completas
-
-Desventaja:
-
-* Sigue existiendo pérdida de contexto antiguo
-
----
-
-## Opción C — Resumen de conversaciones antiguas
-
-Ejemplo:
-
-```text
-System Prompt
-
-Resumen de la conversación anterior:
-El usuario está desarrollando una API en .NET.
-Está trabajando con Ollama.
-Está implementando memoria y concurrencia.
-
-Mensajes recientes:
-...
-```
-
-Ventaja:
-
-* Conserva información importante
-* Reduce tokens
-
-Desventaja:
-
-* Requiere lógica adicional
-* El resumen también debe administrarse
-
-Esta estrategia probablemente será más adecuada para una fase posterior.
-
----
-
-# 30. Configuración actual de dependencias
-
-Configuración conceptual actual:
-
-```csharp
-builder.Services.AddHttpClient();
-
-builder.Services.AddScoped<OpenAIService>();
-builder.Services.AddScoped<IChatService, OllamaService>();
-builder.Services.AddScoped<IAgentService, AgentService>();
-builder.Services.AddScoped<IPromptBuilder, PromptBuilder>();
-
-builder.Services.AddSingleton<ISystemPromptProvider, SystemPromptProvider>();
-builder.Services.AddSingleton<IConversationContextFactory, ConversationContextFactory>();
-builder.Services.AddSingleton<IMemoryService, MemoryService>();
-builder.Services.AddSingleton<IConversationStore, SqlConversationStore>();
-```
-
----
-
-# 31. Decisiones sobre ciclos de vida
-
-## Singleton
-
-Se utilizan como Singleton componentes que deben mantenerse durante la vida de la aplicación:
-
-```text
+IAgentService
+IChatService
+IMemoryService
+IConversationStore
+ITool
+IToolRegistry
+IPromptBuilder
 ISystemPromptProvider
-IConversationContextFactory
-IMemoryService
-IConversationStore
 ```
 
-En particular:
+No crear interfaces únicamente por crear interfaces.
+
+---
+
+### Evitar lógica innecesariamente compleja
+
+El proyecto es educativo.
+
+La solución debe ser suficientemente profesional para enseñar buenas prácticas, pero no debe introducir patrones o abstracciones que todavía no aporten valor.
+
+---
+
+### Seguridad primero para Tools
+
+El LLM puede solicitar una Tool, pero eso no significa que la aplicación deba ejecutar cualquier cosa.
+
+La aplicación controla:
 
 ```text
-IMemoryService
-```
-
-debe mantener estado entre diferentes solicitudes HTTP.
-
-Si fuera Scoped:
-
-```text
-Request 1
-    └── MemoryService A
-
-Request 2
-    └── MemoryService B
-```
-
-no existiría memoria compartida entre solicitudes.
-
-Con Singleton:
-
-```text
-Request 1 ──┐
-Request 2 ──┼── MemoryService único
-Request 3 ──┘
+qué Tools existen
+qué argumentos aceptan
+cómo se ejecutan
+qué errores producen
+qué acciones están permitidas
 ```
 
 ---
 
-# 32. Estado de persistencia
+# 18. Qué NO hacer en el siguiente chat
 
-El proyecto ya cuenta con:
+No:
 
-```text
-IConversationStore
-SqlConversationStore
-```
+- reiniciar el proyecto;
+- cambiar Ollama por otro proveedor;
+- introducir RAG todavía;
+- introducir embeddings todavía;
+- introducir una vector database todavía;
+- rediseñar `AgentService` sin una razón concreta;
+- reemplazar `IToolRegistry`;
+- implementar Tools peligrosas;
+- solucionar el rendimiento de Ollama antes de terminar la etapa actual;
+- agregar complejidad innecesaria.
 
-La persistencia en SQL Server forma parte de la arquitectura actual.
-
-Debe revisarse en futuras etapas:
-
-* Qué se persiste exactamente
-* Cuándo se carga una conversación
-* Cuándo se guarda
-* Cómo se reconstruye el contexto
-* Cómo se eliminan conversaciones antiguas
-* Cómo se evita que el historial persistido crezca indefinidamente
+La prioridad es terminar correctamente la primera Tool real y consolidar el ciclo de Tool Calling.
 
 ---
 
-# 33. Próxima etapa inmediata
+# 19. Instrucciones para el siguiente chat
 
-## ETAPA 1 — Restaurar OllamaService
+## CONTEXTO
 
-Restaurar:
+Este documento es el estado actual de `LearningAgent.Api`.
 
-```text
-Mensajes reales
-```
+El proyecto es educativo y el objetivo es aprender cómo construir un agente de IA en .NET mediante una evolución incremental.
 
-en lugar de:
+La infraestructura básica de Tools ya funciona.
 
-```text
-Mensaje fijo de prueba
-```
+## PUNTO EXACTO DONDE CONTINUAR
 
-Mantener temporalmente:
+Continuar desde:
 
 ```text
-Stopwatch
+CalculatorTool
 ```
 
-y posiblemente registrar:
+Actualmente recibe los argumentos pero todavía no calcula realmente.
+
+El objetivo inmediato es convertirla en una calculadora funcional y segura.
+
+## Forma de trabajo
+
+Trabajar de manera práctica y explicar simultáneamente.
+
+No es necesario realizar otra ronda extensa de preguntas conceptuales antes de programar.
+
+Para cada cambio:
+
+1. explicar brevemente qué problema resuelve;
+2. indicar qué archivo se modifica;
+3. mostrar el código necesario;
+4. explicar las partes importantes;
+5. probar;
+6. revisar el resultado;
+7. continuar con el siguiente paso.
+
+No entregar todo el proyecto de golpe.
+
+Avanzar incrementalmente.
+
+## Orden sugerido
 
 ```text
-Cantidad de mensajes
-Tamaño del JSON
-Tiempo total
+1. Revisar la implementación actual de CalculatorTool.
+2. Crear la representación necesaria para los argumentos, si realmente aporta valor.
+3. Implementar cálculo seguro de expresiones soportadas.
+4. Validar argumentos.
+5. Manejar errores de forma controlada.
+6. Probar desde Swagger.
+7. Probar mediante conversación real con Ollama.
+8. Revisar el flujo completo:
+   usuario → LLM → tool_call → Tool → resultado → LLM → respuesta.
+9. Revisar qué falta para considerar Tools terminadas.
+10. Revisar persistencia de ToolCalls/ToolName.
+11. Documentar la etapa Tools.
+12. Preparar el siguiente PROJECT.md para comenzar RAG en un chat separado.
 ```
+
+## Regla importante
+
+Si una decisión técnica requiere cambiar una parte existente, primero explicar:
+
+```text
+qué problema existe
+por qué el cambio es necesario
+qué alternativa se descartó
+```
+
+No realizar cambios arquitectónicos solamente por preferencia de estilo.
 
 ---
 
-# 34. ETAPA 2 — Medir el impacto del contexto
+# 20. Próxima gran etapa: RAG
 
-Realizar tres pruebas.
-
-## Prueba A
+Después de terminar Tools, la siguiente etapa será:
 
 ```text
-Usuario solamente
+RAG
 ```
 
-Ejemplo:
+y se realizará en otro chat.
+
+Objetivo conceptual:
 
 ```text
-Hola, responde brevemente
-```
-
-Objetivo:
-
-Establecer la latencia base.
-
----
-
-## Prueba B
-
-```text
-System Prompt
-+
 Usuario
+   ↓
+Agent
+   ↓
+RAG
+   ↓
+Documentos / conocimiento
+   ↓
+Contexto relevante
+   ↓
+LLM
+   ↓
+Respuesta
 ```
 
-Objetivo:
+RAG debe estudiarse después de comprender correctamente Tools.
 
-Medir el costo del System Prompt.
-
----
-
-## Prueba C
-
-```text
-System Prompt
-+
-Historial
-+
-Usuario
-```
-
-Objetivo:
-
-Medir el impacto real del crecimiento de la conversación.
-
----
-
-# 35. ETAPA 3 — Optimizar el contexto
-
-Una vez obtenidas las mediciones, implementar inicialmente una estrategia simple.
-
-Recomendación inicial:
-
-```text
-System Prompt
-+
-Últimos N mensajes
-```
-
-Más adelante evolucionar hacia:
-
-```text
-System Prompt
-+
-Resumen histórico
-+
-Mensajes recientes
-```
-
----
-
-# 36. ETAPA 4 — Mejorar manejo de errores
-
-Implementar manejo explícito para:
-
-```text
-Ollama no disponible
-Modelo no encontrado
-Timeout
-HTTP no exitoso
-JSON inválido
-Cancelación
-```
-
-Ejemplo conceptual:
-
-```csharp
-try
-{
-    // llamada a Ollama
-}
-catch (TaskCanceledException)
-{
-    // timeout o cancelación
-}
-catch (HttpRequestException)
-{
-    // error HTTP
-}
-```
-
----
-
-# 37. ETAPA 5 — Timeout configurable
-
-Actualmente el `HttpClient` utiliza el comportamiento/configuración existente.
-
-Debe considerarse mover el timeout a configuración:
-
-```json
-"Ollama": {
-  "BaseUrl": "http://127.0.0.1:11434",
-  "Model": "llama3.2",
-  "TimeoutSeconds": 120
-}
-```
-
-Después configurar el cliente de forma explícita.
-
-El timeout del cliente API y el timeout de Ollama deben considerarse como conceptos diferentes.
-
-```text
-Cliente .http
-      │
-      │ Timeout del cliente
-      ▼
-LearningAgent.Api
-      │
-      │ Timeout de HttpClient
-      ▼
-Ollama
-```
-
----
-
-# 38. ETAPA 6 — Pruebas de concurrencia avanzadas
-
-Realizar pruebas con:
-
-## Caso A
-
-```text
-Mismo ConversationId
-2 solicitudes simultáneas
-```
-
-Resultado esperado:
-
-```text
-Secuenciales
-```
-
----
-
-## Caso B
-
-```text
-ConversationId A
-ConversationId B
-```
-
-Resultado esperado:
-
-```text
-Procesamiento independiente
-```
-
----
-
-## Caso C
-
-```text
-5 o más solicitudes
-```
-
-Objetivo:
-
-Analizar:
-
-* Locks
-* Orden
-* Rendimiento
-* Posibles condiciones de carrera
-
----
-
-# 39. ETAPA 7 — Streaming
-
-Actualmente:
-
-```text
-Stream = false
-```
-
-La API espera a que Ollama termine completamente.
-
-En una etapa futura se puede implementar:
-
-```text
-Stream = true
-```
-
-para enviar tokens progresivamente.
-
-Flujo futuro:
-
-```text
-Ollama
-  │
-  ├── token 1
-  ├── token 2
-  ├── token 3
-  └── token N
-       │
-       ▼
-LearningAgent.Api
-       │
-       ▼
-Cliente
-```
-
-Esto puede mejorar significativamente la percepción de velocidad.
-
----
-
-# 40. ETAPA 8 — Herramientas del agente
-
-El agente podrá evolucionar para utilizar herramientas.
-
-Ejemplos:
-
-```text
-Agente
-   │
-   ├── Consultar API
-   ├── Consultar base de datos
-   ├── Leer documentos
-   ├── Buscar información
-   └── Ejecutar acciones controladas
-```
-
----
-
-# 41. ETAPA 9 — RAG
-
-Posteriormente implementar:
+Posibles temas posteriores:
 
 ```text
 Documentos
-    │
-    ▼
+   ↓
+Chunking
+   ↓
 Embeddings
-    │
-    ▼
-Base vectorial
-    │
-    ▼
-Búsqueda semántica
-    │
-    ▼
-Contexto relevante
-    │
-    ▼
+   ↓
+Vector Store
+   ↓
+Similarity Search
+   ↓
+Contexto
+   ↓
 LLM
 ```
 
-El objetivo será que el agente pueda responder utilizando información externa específica.
+La tecnología concreta para embeddings/vector store se decidirá cuando llegue esa etapa.
 
 ---
 
-# 42. ETAPA 10 — Pruebas
+# 21. Visión final del proyecto
 
-Pendiente implementar:
-
-## Pruebas unitarias
-
-Para:
+La meta educativa es llegar progresivamente a una arquitectura parecida a:
 
 ```text
-AgentService
-MemoryService
-PromptBuilder
-OllamaService
-ConversationStore
+                         ┌──────────────┐
+                         │     User     │
+                         └──────┬───────┘
+                                │
+                                ▼
+                         ┌──────────────┐
+                         │    Agent     │
+                         └──────┬───────┘
+                                │
+                 ┌──────────────┼──────────────┐
+                 │              │              │
+                 ▼              ▼              ▼
+              Memory          Tools           RAG
+                 │              │              │
+                 │              ▼              ▼
+                 │         External APIs    Documents
+                 │
+                 ▼
+             Persistence
+                 │
+                 ▼
+             SQL Server
+                                │
+                                ▼
+                              LLM
+                                │
+                                ▼
+                           Final Answer
 ```
 
-## Pruebas de integración
-
-Para:
-
-```text
-POST /api/Chat
-Persistencia
-Memoria
-Ollama
-```
-
-## Pruebas de carga
-
-Por ejemplo con:
-
-```text
-JMeter
-```
-
-Objetivo:
-
-* Solicitudes simultáneas
-* Conversaciones múltiples
-* Misma conversación
-* Latencia
-* Errores
-* Uso de recursos
+La arquitectura final no está cerrada. Se debe evolucionar conforme se aprenden los conceptos y aparecen necesidades reales.
 
 ---
 
-# 43. Estado actual antes de continuar
+# 22. Porcentaje aproximado de avance
 
-El proyecto se encuentra en este punto:
-
-```text
-Cliente
-   │
-   ▼
-ChatController
-   │
-   ▼
-AgentService
-   │
-   ├── MemoryService
-   │       │
-   │       ├── Contexto en memoria
-   │       ├── Lock por ConversationId
-   │       └── Persistencia
-   │
-   ├── PromptBuilder
-   │
-   ▼
-OllamaService
-   │
-   ▼
-Ollama
-   │
-   ▼
-llama3.2
-```
-
-La arquitectura básica funciona.
-
-La memoria funciona.
-
-El aislamiento entre conversaciones funciona.
-
-La sincronización por conversación funciona.
-
-El archivo `.http` funciona después de aumentar su timeout.
-
-Ollama funciona.
-
-Se confirmó que la carga del modelo puede afectar considerablemente el tiempo de respuesta.
-
----
-
-# 44. Instrucciones para el próximo chat
-
-El siguiente chat debe tomar este documento como contexto del proyecto.
-
-NO reiniciar el proyecto desde cero.
-
-El punto exacto de continuación es:
-
-> Restaurar `OllamaService` para que vuelva a utilizar los mensajes reales recibidos desde `AgentService`, manteniendo temporalmente la medición con `Stopwatch`.
-
-Después:
-
-1. Medir latencia base.
-2. Medir System Prompt.
-3. Medir historial.
-4. Comparar resultados.
-5. Implementar una estrategia inicial para limitar el contexto.
-6. Mejorar manejo de errores y timeout.
-7. Continuar con las siguientes etapas del agente.
-
----
-
-# 45. Prompt de continuidad para un nuevo chat
+El proyecto ha completado aproximadamente:
 
 ```text
-Estoy desarrollando LearningAgent.Api como un proyecto educativo para aprender a construir un agente de IA con C#, .NET 8, ASP.NET Core Web API y Ollama.
-
-Lee PROJECT.md como fuente principal de contexto antes de proponer cambios.
-
-No reinicies el proyecto ni propongas una arquitectura completamente diferente sin analizar primero la arquitectura existente.
-
-El proyecto ya tiene:
-
-- ChatController
-- AgentService
-- MemoryService
-- PromptBuilder
-- SystemPromptProvider
-- ConversationContextFactory
-- OllamaService
-- SqlConversationStore
-- memoria conversacional
-- persistencia
-- control de concurrencia por ConversationId
-
-El modelo actual es llama3.2 ejecutándose localmente mediante Ollama.
-
-El flujo principal es:
-
-ChatController
-→ AgentService
-→ MemoryService
-→ PromptBuilder
-→ IChatService / OllamaService
-→ Ollama
-
-MemoryService utiliza un SemaphoreSlim por ConversationId para evitar condiciones de carrera.
-
-Ya se probó que:
-
-- La memoria funciona.
-- Las conversaciones no se mezclan.
-- Dos solicitudes con el mismo ConversationId se serializan correctamente.
-- Swagger y LearningAgent.Api.http pueden utilizarse para realizar pruebas.
-- El timeout original del archivo .http era de 20 segundos y se cambió a 120 segundos en Visual Studio 2026.
-- Ollama funciona correctamente en localhost:11434.
-- El tiempo de respuesta puede variar considerablemente por load_duration del modelo.
-- Una primera solicitud puede ser lenta por carga/preparación del modelo y una segunda inmediata puede ser mucho más rápida.
-
-IMPORTANTE:
-Actualmente OllamaService está modificado temporalmente para enviar un mensaje fijo:
-
-"Hola, responde brevemente"
-
-Ignora temporalmente los mensajes reales recibidos en el parámetro GetResponseAsync.
-
-La siguiente tarea inmediata es restaurar OllamaService para utilizar los mensajes reales construidos por PromptBuilder, manteniendo Stopwatch y logs de rendimiento temporalmente.
-
-Después debemos medir:
-
-A. Solo mensaje del usuario.
-B. System Prompt + usuario.
-C. System Prompt + historial + usuario.
-
-El objetivo es medir el impacto real del crecimiento del contexto antes de implementar una estrategia de limitación de historial.
-
-Explica los cambios paso a paso y prioriza el aprendizaje. No cambies varias partes de la arquitectura simultáneamente sin justificarlo.
+Chat básico             ████████████████████ 100%
+System Prompt           ████████████████████ 100%
+Memory                  ████████████████████ 100%
+Persistence             ████████████████████ 100%
+Concurrency             ████████████████████ 100%
+Tools - infraestructura ████████████████████ 100%
+Tools - consolidación   ████████████░░░░░░░░  ~60%
+RAG                     ░░░░░░░░░░░░░░░░░░░░   0%
 ```
 
----
+El porcentaje es educativo/aproximado, no una métrica de código terminado.
 
-**Fin de PROJECT.md**
-
-```
-
-El siguiente paso sería guardar este contenido reemplazando el `PROJECT.md` actual y abrir el nuevo chat utilizando ese archivo como contexto. 
-```
+El siguiente objetivo es llevar Tools a una primera versión estable antes de comenzar RAG.

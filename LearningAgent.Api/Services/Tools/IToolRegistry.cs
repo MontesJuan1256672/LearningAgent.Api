@@ -5,4 +5,5 @@ namespace LearningAgent.Api.Services.Tools;
 public interface IToolRegistry
 {
     ITool? GetTool(string name);
+    IEnumerable<ITool> GetTools();
 }

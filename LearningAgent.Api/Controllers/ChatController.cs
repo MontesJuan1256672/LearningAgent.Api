@@ -39,12 +39,13 @@ public class ChatController : ControllerBase
         if (tool is null)
             return NotFound($"No se encontró la herramienta '{name}'.");
 
-        var result = await tool.ExecuteAsync("10 + 20");
+        var result = await tool.ExecuteAsync("""{"expression":"10 + 20"}""");
 
         return Ok(new
         {
-            tool.Name,
-            tool.Description,
+            tool.Definition.Name,
+            tool.Definition.Description,
+            tool.Definition.Parameters,
             result
         });
     }
