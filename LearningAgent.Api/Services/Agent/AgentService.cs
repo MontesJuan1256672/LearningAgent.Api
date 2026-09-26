@@ -43,8 +43,14 @@ public class AgentService : IAgentService
 
             var chatResult = await _chatService.GetResponseAsync(messages);
 
-            if (chatResult.ToolCalls.Any())
+            const int maxToolIterations = 5;
+
+            int toolIteration = 0;
+
+            while (chatResult.ToolCalls.Any() && toolIteration < maxToolIterations)                  
             {
+                toolIteration++;
+
                 context.Messages.Add(new ConversationMessage
                 {
                     Role = "assistant",
@@ -69,17 +75,19 @@ public class AgentService : IAgentService
                     }
 
                     var toolResult = await tool.ExecuteAsync(toolCall.Arguments);
-
+                       
                     context.Messages.Add(new ConversationMessage
                     {
                         Role = "tool",
+                        ToolName = toolCall.Name,
+                        ToolCallId = toolCall.Id,
                         Content = toolResult
                     });
                 }
 
                 messages = _promptBuilder.Build(context);
 
-                chatResult = await _chatService.GetResponseAsync(messages);
+                chatResult = await _chatService.GetResponseAsync(messages);                
             }
 
             context.Messages.Add(new ConversationMessage

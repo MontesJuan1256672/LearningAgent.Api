@@ -58,10 +58,11 @@ namespace LearningAgent.Api.Services.Chat
                         Role = m.Role,
                         Content = m.Content,
                         ToolName = m.ToolName,
-
+                        ToolCallId = m.ToolCallId,
                         ToolCalls = m.ToolCalls
                             .Select(toolCall => new OllamaToolCall
                             {
+                                Id = toolCall.Id,
                                 Function = new OllamaToolCallFunction
                                 {
                                     Name = toolCall.Name,
@@ -110,6 +111,7 @@ namespace LearningAgent.Api.Services.Chat
                 ToolCalls = ollamaResponse?.Message.ToolCalls
                     .Select(toolCall => new ToolCall
                     {
+                        Id = toolCall.Id,
                         Name = toolCall.Function.Name,
                         Arguments = toolCall.Function.Arguments.GetRawText()
                     })
