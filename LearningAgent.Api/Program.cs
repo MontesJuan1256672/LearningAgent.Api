@@ -2,10 +2,15 @@ using LearningAgent.Api.Options;
 using LearningAgent.Api.Services.Agent;
 using LearningAgent.Api.Services.Chat;
 using LearningAgent.Api.Services.Conversation;
+using LearningAgent.Api.Services.Embedding;
 using LearningAgent.Api.Services.Memory;
 using LearningAgent.Api.Services.Prompts;
+using LearningAgent.Api.Services.Qdrant;
+using LearningAgent.Api.Services.Retrieval;
 using LearningAgent.Api.Services.Tool;
 using LearningAgent.Api.Services.Tools;
+using Microsoft.Extensions.Options;
+using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +21,10 @@ builder.Services.Configure<OpenAIOptions>(builder.Configuration.GetSection("Open
 builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection("Ollama"));
 
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<IEmbeddingService, EmbeddingService>(client =>
+{
+    client.BaseAddress = new Uri("http://127.0.0.1:11434/");
+});
 
 builder.Services.AddScoped<OpenAIService>();
 builder.Services.AddScoped<IChatService, OllamaService>();
@@ -23,11 +32,25 @@ builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IPromptBuilder, PromptBuilder>();
 builder.Services.AddScoped<ITool, CalculatorTool>();
 builder.Services.AddScoped<IToolRegistry, ToolRegistry>();
+builder.Services.AddScoped<IRetrievalService, RetrievalService>();
 
 builder.Services.AddSingleton<ISystemPromptProvider, SystemPromptProvider>();
 builder.Services.AddSingleton<IConversationContextFactory, ConversationContextFactory>();
 builder.Services.AddSingleton<IMemoryService, MemoryService>();
 builder.Services.AddSingleton<IConversationStore, SqlConversationStore>();
+
+builder.Services.Configure<QdrantOptions>(builder.Configuration.GetSection("Qdrant"));
+builder.Services.AddSingleton<QdrantClient>(serviceProvider =>
+{
+    var options = serviceProvider
+        .GetRequiredService<IOptions<QdrantOptions>>()
+        .Value;
+
+    return new QdrantClient(options.Host, options.GrpcPort);
+});
+
+builder.Services.AddScoped<IQdrantService, QdrantService>();
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

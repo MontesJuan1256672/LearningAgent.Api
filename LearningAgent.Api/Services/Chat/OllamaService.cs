@@ -28,6 +28,7 @@ namespace LearningAgent.Api.Services.Chat
             _options = options.Value;
             _toolRegistry = toolRegistry;
             _httpClient.BaseAddress = new Uri(_options.BaseUrl);
+            _httpClient.Timeout = TimeSpan.FromMinutes(5);//esto solo es para diagnóstico, luego se puede quitar o ajustar según sea necesario
         }
 
         public async Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages)
@@ -57,8 +58,9 @@ namespace LearningAgent.Api.Services.Chat
                     {
                         Role = m.Role,
                         Content = m.Content,
-                        ToolName = m.ToolName,
-                        ToolCallId = m.ToolCallId,
+                        ToolName = m.Role == "tool" ? m.ToolName : null,
+                        //ToolName = m.ToolName,
+                        //ToolCallId = m.ToolCallId,
                         ToolCalls = m.ToolCalls
                             .Select(toolCall => new OllamaToolCall
                             {
@@ -81,42 +83,80 @@ namespace LearningAgent.Api.Services.Chat
             Console.WriteLine($"Mensajes enviados: {request.Messages.Count}");
             Console.WriteLine($"Tamaño JSON: {Encoding.UTF8.GetByteCount(json)} bytes");
 
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            //agregado temporalmente para depuración de mensajes y herramientas
+            foreach (var mensaje in request.Messages)
+            {
+                Console.WriteLine(
+                    $"Role={mensaje.Role}, " +
+                    $"ContentChars={mensaje.Content?.Length ?? 0}, " +
+                    $"ToolCalls={mensaje.ToolCalls?.Count ?? 0}");
+            }
 
+            foreach (var (message, index) in request.Messages.Select((m, i) => (m, i)))
+            {
+                Console.WriteLine(
+                    $"Mensaje {index + 1}: " +
+                    $"Role={message.Role}, " +
+                    $"ContentChars={message.Content?.Length ?? 0}, " +
+                    $"ContentBytes={Encoding.UTF8.GetByteCount(message.Content ?? string.Empty)}, " +
+                    $"ToolCalls={message.ToolCalls?.Count ?? 0}");
+
+                Console.WriteLine(
+                    $"Contenido: {(message.Content ?? string.Empty)[..Math.Min((message.Content ?? string.Empty).Length, 300)]}");
+            }
+
+            Console.WriteLine($"Tools disponibles: {request.Tools?.Count ?? 0}");
+
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            HttpResponseMessage response = await _httpClient.PostAsync("/api/chat", content);
+            Console.WriteLine($"Inicio llamada Ollama: {DateTime.Now:HH:mm:ss}");
+            Console.WriteLine($"Modelo: {_options.Model}");
+            Console.WriteLine($"Mensajes: {request.Messages.Count}");
+            Console.WriteLine($"Tamaño JSON: {Encoding.UTF8.GetByteCount(json)} bytes");
 
-            stopwatch.Stop();
-
-            Console.WriteLine($"Tiempo HTTP: {stopwatch.ElapsedMilliseconds} ms");
-
-            response.EnsureSuccessStatusCode();
-
-            string responseJson = await response.Content.ReadAsStringAsync();
-            Console.WriteLine("Respuesta RAW de Ollama:");
-            Console.WriteLine(responseJson);
-
-            var ollamaResponse = JsonSerializer.Deserialize<OllamaChatResponse>(responseJson, JsonOptions);
-
-            Console.WriteLine($"Ollama Total: {ollamaResponse?.TotalDuration / 1_000_000_000.0:F2} s");
-            Console.WriteLine($"Ollama Load: {ollamaResponse?.LoadDuration / 1_000_000_000.0:F2} s");
-            Console.WriteLine($"Ollama Prompt Eval: {ollamaResponse?.PromptEvalDuration / 1_000_000_000.0:F2} s");
-            Console.WriteLine($"Ollama Eval: {ollamaResponse?.EvalDuration / 1_000_000_000.0:F2} s");
-
-            //return ollamaResponse?.Message.Content?? "No se recibió respuesta.";
-            return new ChatResult
+            try
             {
-                Content = ollamaResponse?.Message.Content ?? "No se recibió respuesta.",
-                ToolCalls = ollamaResponse?.Message.ToolCalls
-                    .Select(toolCall => new ToolCall
-                    {
-                        Id = toolCall.Id,
-                        Name = toolCall.Function.Name,
-                        Arguments = toolCall.Function.Arguments.GetRawText()
-                    })
-                    ?? []
-            };      
+                HttpResponseMessage response = await _httpClient.PostAsync("/api/chat", content);                   
+                Console.WriteLine($"Respuesta HTTP recibida: {stopwatch.Elapsed.TotalSeconds:F2} s");
+                response.EnsureSuccessStatusCode();
+                string responseJson = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Tiempo total hasta leer respuesta: {stopwatch.Elapsed.TotalSeconds:F2} s");
+
+                Console.WriteLine("Respuesta RAW de Ollama:");
+                Console.WriteLine(responseJson);
+
+                var ollamaResponse = JsonSerializer.Deserialize<OllamaChatResponse>(responseJson, JsonOptions);
+
+                Console.WriteLine($"Ollama Total: {ollamaResponse?.TotalDuration / 1_000_000_000.0:F2} s");
+                Console.WriteLine($"Ollama Load: {ollamaResponse?.LoadDuration / 1_000_000_000.0:F2} s");
+                Console.WriteLine($"Ollama Prompt Eval: {ollamaResponse?.PromptEvalDuration / 1_000_000_000.0:F2} s");
+                Console.WriteLine($"Ollama Eval: {ollamaResponse?.EvalDuration / 1_000_000_000.0:F2} s");
+
+
+                return new ChatResult
+                {
+                    Content = ollamaResponse?.Message.Content ?? "No se recibió respuesta.",
+
+                    ToolCalls = ollamaResponse?.Message?.ToolCalls?
+                        .Select(toolCall => new ToolCall
+                        {
+                            Id = toolCall.Id,
+                            Name = toolCall.Function.Name,
+                            Arguments = toolCall.Function.Arguments.GetRawText()
+                        })
+                        .ToList() ?? []
+                };
+
+            }
+            catch (TaskCanceledException ex)
+            {
+                Console.WriteLine($"Timeout/cancelación Ollama tras {stopwatch.Elapsed.TotalSeconds:F2} s");
+                Console.WriteLine($"HttpClient.Timeout: {_httpClient.Timeout}");
+                Console.WriteLine(ex.ToString());
+
+                throw;
+            }
         }
     }
 }
