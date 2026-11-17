@@ -71,7 +71,9 @@ public class AgentService : IAgentService
 
             Console.WriteLine($"Mensajes enviados a Ollama: {messages.Count()}");
 
-            var chatResult = await _chatService.GetResponseAsync(messages);
+            bool habilitarHerramientas = EsOperacionMatematicaSimple(message);
+
+            var chatResult = await _chatService.GetResponseAsync(messages, habilitarHerramientas);
 
             const int maxToolIterations = 5;
 
@@ -117,7 +119,7 @@ public class AgentService : IAgentService
 
                 messages = _promptBuilder.Build(context);
 
-                chatResult = await _chatService.GetResponseAsync(messages);                
+                chatResult = await _chatService.GetResponseAsync(messages, habilitarHerramientas);                
             }
 
             context.Messages.Add(new ConversationMessage

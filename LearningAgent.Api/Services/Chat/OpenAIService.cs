@@ -16,7 +16,7 @@ namespace LearningAgent.Api.Services.Chat
                 apiKey: options.Value.ApiKey);
         }
 
-        public async Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages)
+        public async Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages, bool enableTools)
         {
             var openAiMessages = new List<OpenAI.Chat.ChatMessage>();
 

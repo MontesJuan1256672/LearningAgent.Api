@@ -32,6 +32,23 @@ public class RetrievalService : IRetrievalService
         if (results.Count == 0)
             return string.Empty;
 
+        Console.WriteLine($"Fragmentos recuperados: {results.Count}");
+
+        foreach (var (point, index) in results.Select((p, i) => (p, i)))
+        {
+            string text = point.Payload.TryGetValue(
+                "text", out var content)
+                    ? content.StringValue
+                    : string.Empty;
+
+            Console.WriteLine(
+                $"Fragmento {index + 1} | " +
+                $"Score: {point.Score:F3} | " +
+                $"Caracteres: {text.Length} | " +
+                $"Chunk: {point.Payload["chunkIndex"].IntegerValue}");
+        }
+
+
         // 3. Construir el contexto documental.
         var context = new StringBuilder();
 
@@ -62,6 +79,11 @@ public class RetrievalService : IRetrievalService
             context.AppendLine();
         }
 
-        return context.ToString().Trim();
+        string retrievedContext = context.ToString().Trim();
+
+        Console.WriteLine($"Total caracteres del contexto: {retrievedContext.Length}");
+           
+        return retrievedContext;
+
     }
 }

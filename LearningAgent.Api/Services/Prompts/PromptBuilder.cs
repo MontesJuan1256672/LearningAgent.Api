@@ -5,27 +5,27 @@ namespace LearningAgent.Api.Services.Prompts;
 
 public class PromptBuilder : IPromptBuilder
 {
-    //private readonly ISystemPromptProvider _systemPromptProvider;
 
-    public PromptBuilder(ISystemPromptProvider systemPromptProvider)
+    public IEnumerable<ConversationMessage> Build(ConversationContext context)
     {
-        //_systemPromptProvider = systemPromptProvider;
-    }
+        const int maxHistoryMessages = 10;
 
-    public IEnumerable<ConversationMessage> Build(ConversationContext contex)
-    {
         var messages = new List<ConversationMessage>
-       {
-           new()
-           {
-               Role = "system",
-               Content = contex.SystemPrompt
-           }
-       };
+        {
+            new()
+            {
+                Role = "system",
+                Content = context.SystemPrompt
+            }
+        };
 
-        messages.AddRange(contex.Messages);
+        var history = context.Messages.TakeLast(maxHistoryMessages);
+
+        messages.AddRange(history);
+
         return messages;
     }
+
 }
 
 

@@ -31,22 +31,22 @@ namespace LearningAgent.Api.Services.Chat
             _httpClient.Timeout = TimeSpan.FromMinutes(5);//esto solo es para diagnóstico, luego se puede quitar o ajustar según sea necesario
         }
 
-        public async Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages)
+        public async Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages, bool enableTools)
         {
-            var tools = _toolRegistry
-                .GetTools()
-                .Select(tool => new OllamaTool
-                {
-                    Type = "function",
-
-                    Function = new OllamaToolFunction
+            var tools = enableTools
+                ? _toolRegistry.GetTools()
+                    .Select(tool => new OllamaTool
                     {
-                        Name = tool.Definition.Name,
-                        Description = tool.Definition.Description,
-                        Parameters = tool.Definition.Parameters
-                    }
-                })
-                .ToList();
+                        Type = "function",
+                        Function = new OllamaToolFunction
+                        {
+                            Name = tool.Definition.Name,
+                            Description = tool.Definition.Description,
+                            Parameters = tool.Definition.Parameters
+                        }
+                    })
+                    .ToList()
+                : [];
 
             var request = new OllamaChatRequest
             {
@@ -59,8 +59,7 @@ namespace LearningAgent.Api.Services.Chat
                         Role = m.Role,
                         Content = m.Content,
                         ToolName = m.Role == "tool" ? m.ToolName : null,
-                        //ToolName = m.ToolName,
-                        //ToolCallId = m.ToolCallId,
+                        ToolCallId = m.Role == "tool" ? m.ToolCallId : null,
                         ToolCalls = m.ToolCalls
                             .Select(toolCall => new OllamaToolCall
                             {

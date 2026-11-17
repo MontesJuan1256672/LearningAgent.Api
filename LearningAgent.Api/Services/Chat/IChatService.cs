@@ -4,5 +4,5 @@ namespace LearningAgent.Api.Services.Chat;
 
 public interface IChatService
 {
-    Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages);
+    Task<ChatResult> GetResponseAsync(IEnumerable<ConversationMessage> messages, bool enableTools);
 }
